@@ -1,0 +1,88 @@
+#+TITLE: Wu-Wei
+
+Wu-Wei is a personal productivity platform for the code-fluent.
+
+Everything below is brainstorming.
+
+* Goals and Inspirations
+
+** Configuration Via Coding
+Rather than options menus or config files, configuration of Wu-Wei
+will be done almost entirely via code editing. This follows in the
+Emacs + org-mode tradition.
+
+Whereas emacs is a text-editor that is flexible enough to do
+personal-organization tasks, wu-wei is a personal organization
+software that is flexible enough to provide an editor for its own
+source code.
+
+** Getting Things Done by David Allen
+The out-of-box environment packaged with Wu-Wei implements David
+Allen's GTD system. You can, of course, modify this however you like
+from within the included JS editor.
+
+** All application state can be serialized and accessed across the platform
+The entire state of a Wu Wei session can be represented as JSON, and
+accessed by other parts of the system. Sessions can be stored, forked,
+and rolled back. Much like plan9's "everything is a file" approach, in
+Wu-Wei, "everything is JSON". This enables deep-integration of
+separate components.
+
+** Protocol-based definitions of all supported data types
+Using generic functions (as in Common Lisp, described in AMOP) with
+protocol-defined datatypes, rather than JS classes, allows the
+end-user to easily monkey-patch everything as they please.
+
+* Components
+
+** User Shell
+Windowed on desktop, keyboard friendly. Stylus and touch support.
+
+** Ebook Reader + Note management
+Stylus support for drawing notes, highlighting passages. Notes can be
+attached to sections of epubs. All notes and contents are dated and
+full-text searchable. Library view, completion percent.
+
+** Tasking
+Programmable statuses & transitions, link to other parts of the system.
+
+** Calendar
+Dated events, calDAV accessible, programmable repeats, etc.
+
+** Capture templates
+Especially important for mobile UI
+
+** Personal Wiki
+
+** Self-Editor
+Do not aspire to make this an IDE, but it will be convenient to edit
+components of the user interface directly within itself, and save the
+changes.
+
+** Task Dependency Trees
+
+** Mindmap
+Actually I find these a little gimmicky but I'm interested in this.
+
+
+* Sacrifices I Expect to Make
+
+** You'll need a server
+Fluent access to data across multiple devices means we either need a
+server, or, a peer to peer solution. I don't want to deal with P2P
+right now.
+
+** And it won't be E2E encrypted
+Wu-Wei Server isn't realistically going to be able to do indexing or
+searching of content if we do client-side encryption. It also won't be
+able to serve calendar events over CalDAV. And so on. It's self-hosted
+though, so as long as you choose to run it on your own hardware, you
+should be okay.
+
+** It's probably going to be javascript + Python for now
+I would much rather use a Common Lisp backend and frontend,
+but...Javascript is the obvious choice for frontend/environment
+implementation, and Python is hard to beat as a glue-code backend. So
+I'm just starting with that. If someone is able to get SBCL or CLISP
+running in WASM, I will 100% reimplement every part of this repository
+in lisp for version 2.0.
