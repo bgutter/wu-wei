@@ -2,87 +2,147 @@
 
 Wu-Wei is a personal productivity platform for the code-fluent.
 
-Everything below is brainstorming.
+While Wu-Wei aims to support every workflow, it does not do so by
+actually implementing every workflow. Rather, out of the box, Wu-Wei
+provides only a basic set of tightly-integrated productivity
+tools. You'll find a task manager, personal wiki, epub reader,
+calendar, email client, and other basic features.
 
-* Goals and Inspirations
+What sets Wu-Wei apart from other productivity solutions is not its
+out-of-box feature set, but rather, it's extensibility. Modeled after
+Emacs and org-mode, _Wu-Wei's end-user configuration is done entirely
+in code_. Rather than a comprehensive application, Wu-Wei is actually
+designed to be a platform upon which you can implement your own,
+personal, workflow.
 
-** Configuration Via Coding
-Rather than options menus or config files, configuration of Wu-Wei
-will be done almost entirely via code editing. This follows in the
-Emacs + org-mode tradition.
+* How It Works
 
-Whereas emacs is a text-editor that is flexible enough to do
-personal-organization tasks, wu-wei is a personal organization
-software that is flexible enough to provide an editor for its own
-source code.
+Wu-Wei runs as a daemon, either locally or on a dedicated server. The
+Wu-Wei user interface is accessed through a browser. _All Wu-Wei
+frontend code is stored within the Wu-Wei server as mutable data_,
+alongside other user data, such as wiki pages and calendar events.
 
-** Getting Things Done by David Allen
-The out-of-box environment packaged with Wu-Wei implements David
-Allen's GTD system. You can, of course, modify this however you like
-from within the included JS editor.
+Whenever you want to augment or modify Wu-Wei's behavior, you just
+edit the front-end code directly within Wu-Wei's included code
+editor. Normally, though, you won't actually need to edit the code
+itself. Wu-Wei is architected with end-user behavior modifications in
+mind, and most key behaviors are implemented through callback
+functions. You can override these with your own implementations in
+=init.js=.
 
-** All application state can be serialized and accessed across the platform
-The entire state of a Wu Wei session can be represented as JSON, and
-accessed by other parts of the system. Sessions can be stored, forked,
-and rolled back. Much like plan9's "everything is a file" approach, in
-Wu-Wei, "everything is JSON". This enables deep-integration of
-separate components.
+** The Wu-Wei Environment
 
-** Protocol-based definitions of all supported data types
-Using generic functions (as in Common Lisp, described in AMOP) with
-protocol-defined datatypes, rather than JS classes, allows the
-end-user to easily monkey-patch everything as they please.
+In addition customized frontend code and non-executable data, the
+Wu-Wei server also stores the state of the frontend during use. Things
+like window positions and sizes, scroll points within windows, and so
+on. This is the Wu-Wei session.
 
-* Components
+Session data is available in well-defined way to all code within the
+Wu-Wei frontend. Session data, frontend source code, and other
+user data collectively form the =Wu-Wei Environment=.
 
-** User Shell
-Windowed on desktop, keyboard friendly. Stylus and touch support.
+** The Wu-Wei Server
 
-** Ebook Reader + Note management
-Stylus support for drawing notes, highlighting passages. Notes can be
-attached to sections of epubs. All notes and contents are dated and
-full-text searchable. Library view, completion percent.
+Wu-Wei Server (WWS) exists primarily to serve the Wu-Wei Environment
+in a secure and efficient way. Once authenticated, environment objects
+are fetched from the server as-needed, and pushed back to the server
+when changes are made.
 
-** Tasking
-Programmable statuses & transitions, link to other parts of the system.
+Additionally, WWS takes care of various performance or
+uptime-sensitive responsibilities. It provides an abstracted interface
+for configuring calDAV, IMAP, OCR, and so on.
 
-** Calendar
-Dated events, calDAV accessible, programmable repeats, etc.
+* Out-of-Box Features
 
-** Capture templates
-Especially important for mobile UI
+Wu-Wei provides APIs within the frontend for querying tasks, notes,
+calendar events, emails, and other protocol-defined data types within
+the environment. While you can use these APIs to implement your own
+graphical interfaces to the data within the environment, Wu-Wei also
+comes with its own graphical interfaces. They are as customizable as
+the base APIs themselves.
 
-** Personal Wiki
+** Tasking via Doable
 
-** Self-Editor
-Do not aspire to make this an IDE, but it will be convenient to edit
-components of the user interface directly within itself, and save the
-changes.
+The Doable package uses Wu-Wei's task management data types and APIs
+to provide a powerful to-do list with custom statuses and scheduling
+facilities.
 
-** Task Dependency Trees
+Wu-Wei Tasks can have...
+- Custom Statuses
+- Cross-Task Dependencies
+- Due Dates
+- Time Estimates
+- Dependency tree viewer with critical path analysis
+- Gantt chart
+- Kanban
 
-** Mindmap
-Actually I find these a little gimmicky but I'm interested in this.
+** Note Taking and Document Capture - ?
+
+- Full HTML or Markdown markup
+- Embedded code snippets
+- EPUB ingest, highlighting and annotation
+  - Stylus support on iPad
+- PDF ingest and OCR
+  - Camera-scanning on mobile
+- Mind-Mapping
+- Linking to and from Tasks, calendar events, emails, etc
+
+** Calendar - ?
 
 
-* Sacrifices I Expect to Make
 
-** You'll need a server
-Fluent access to data across multiple devices means we either need a
-server, or, a peer to peer solution. I don't want to deal with P2P
-right now.
+** Email - ?
 
-** And it won't be E2E encrypted
-Wu-Wei Server isn't realistically going to be able to do indexing or
-searching of content if we do client-side encryption. It also won't be
-able to serve calendar events over CalDAV. And so on. It's self-hosted
-though, so as long as you choose to run it on your own hardware, you
-should be okay.
+- Hooks and automatic sorting rules for when an email is received
 
-** It's probably going to be javascript + Python for now
-I would much rather use a Common Lisp backend and frontend,
-but...Javascript is the obvious choice for frontend/environment
-implementation, and Python is hard to beat as a glue-code backend. So
-I'm just starting with that. If someone is able to get SBCL or CLISP
-running in WASM, I will 100% reimplement every part of this repository
-in lisp for version 2.0.
+* Global Features & Technical Features
+
+** Indexed Full-Text Search
+
+All text data within the environment is indexed and real-time
+searchable. This includes, ebook content, notes, emails, and so on.
+
+** Session Management
+
+Wu-Wei can store a number of sessions. Sessions can be saved via
+snapshot, forked and restored.
+
+** Plain Text Data
+
+The entire Wu-Wei environment can be exported to plain text, and
+downloaded as a large JSON archive. This can then be uploaded to a new
+WWS, and everything should "just work". Sessions can be resumed, and
+so on.
+
+** Protocols
+
+All Wu-Wei data types are defined via protocol. Any object that has a
+"due-timestamp" property is considered to implement the "has-due-date"
+protocol, for example, and can be shown in the calendar app as such.
+
+Further, a "Task" object is just an object that has a "task-status"
+property and a "headline" property. And so on. What this means is that
+objects within a Wu-Wei environment do not have specific types, and,
+can implement any number of overlapping protocols.
+
+APIs within Doable do not accept or return objects of specific
+classes, but rather, are defined in terms of protocol
+definitions. When you query for a particular protocol, Wu-Wei returns
+all objects in the environment which implement that protocol.
+
+Of course, you can define your own protocols.
+
+Efficiently indexing objects based on whether the correctly implement
+any and all installed protocols is a core responsibility of Wu-Wei
+Server.
+
+** User Interface
+
+On desktop, the default user interface has windows, and is keyboard
+friendly.
+
+On mobile or on tablets, the user-interface is swipe based. Windows
+switch much like an Android or iOS app switcher.
+
+While it is a priority that mobile and desktop support similar feature
+sets, it is not a priority that they do so in visually similar ways.
