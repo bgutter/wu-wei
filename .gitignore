@@ -130,3 +130,7 @@ dmypy.json
 
 # Emacs temp files
 *~
+
+# generated code from figwheel
+frontend/wu-wei/out/**/*
+frontend/wu-wei/.cpcache/**/*
