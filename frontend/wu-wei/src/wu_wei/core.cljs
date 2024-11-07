@@ -1,7 +1,10 @@
 (ns wu_wei.core
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require react-dom
             [reagent.core :as r]
-            [reagent.dom :as rd]))
+            [reagent.dom :as rd]
+            [cljs-http.client :as http]
+            [cljs.core.async :refer [<!]]))
 
 (defn list-menu-entry
   ""
@@ -46,5 +49,12 @@
   [:div.ww-app-body
    [list-menu]
    ])
+
+(defn test-ring []
+  (go (let [response (<! (http/get "http://localhost:9500/test"
+                                   {:with-credentials? false
+                                    :query-params {"since" 135}}))]
+        (prn (:status response))
+        (prn (map :login (:body response))))))
 
 (rd/render [app] (.-body js/document))

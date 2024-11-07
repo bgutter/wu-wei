@@ -2,5 +2,6 @@
         cljsjs/react {:mvn/version "16.2.0-3"}
         cljsjs/react-dom {:mvn/version "16.2.0-3"}
         reagent/reagent {:mvn/version "1.2.0"}
-        com.bhauman/figwheel-main {:mvn/version "0.2.18"}}
+        com.bhauman/figwheel-main {:mvn/version "0.2.18"}
+        cljs-http/cljs-http {:mvn/version "0.1.48"}}
  :paths ["src" "target" "resources"]}
