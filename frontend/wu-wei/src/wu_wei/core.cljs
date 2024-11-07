@@ -57,4 +57,11 @@
         (prn (:status response))
         (prn (map :login (:body response))))))
 
+(defn get-task [id]
+  (go (let [response (<! (http/get "http://localhost:9500/task/by-id/4"
+                                   {:with-credentials? false
+                                    :query-params {"since" 135}}))]
+        (prn (:status response))
+        (prn (:body response)))))
+
 (rd/render [app] (.-body js/document))
