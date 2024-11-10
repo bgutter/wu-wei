@@ -28,12 +28,31 @@ html, body {
     margin: 3px;
     padding-left: 4px;
     padding-right: 4px;
-    display: flex;
-    flex-direction: columns;
-    align-items: center;
+    /* display: flex; */
+    /* flex-direction: rows; */
     padding-top: 1px;
     border-bottom: solid 1px lightgray;
     border-radius: 5px;
+    overflow: hidden;
+}
+
+.ww-task-list-item-top-panel {
+    display: flex;
+    flex-direction: columns;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+}
+
+.ww-task-list-item-expansion-panel {
+    height: 0vh;
+    transition: all 0.25s ease-out;
+}
+
+.ww-task-list-item-expansion-panel--expanded {
+    height: 30vh;
+    transition: all 0.25s ease-out;
+    display: block;
 }
 
 .ww-task-list-item--completed {

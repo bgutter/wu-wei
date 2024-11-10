@@ -115,8 +115,18 @@
 (defn on-task-summary-edit-completed [event task]
   (.blur (.-target event))
   (let [summary-element (.-target event)
-        task-item-element (.-parentElement summary-element)]
+        task-item-element (.-parentElement (.-parentElement summary-element))]
     (flash-element task-item-element)))
+
+(defn expand-task-list-item-expansion-panel [task]
+  (let [elem (js/document.getElementById (str "task-list-item-expansion-panel:" (:id task)))]
+    (js/console.log "Expanding " elem)
+    (-> elem .-classList (.add "ww-task-list-item-expansion-panel--expanded"))))
+
+(defn unexpand-task-list-item-expansion-panel [task]
+  (let [elem (js/document.getElementById (str "task-list-item-expansion-panel:" (:id task)))]
+    (js/console.log "Expanding " elem)
+    (-> elem .-classList (.remove "ww-task-list-item-expansion-panel--expanded"))))
 
 (defn task-list
   "Component showing task list."
@@ -126,19 +136,27 @@
        (for [t (sort-by #(* 1 (js/parseInt (:id %))) (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
          ^{:key (:id t)}
          [:div.ww-task-list-item
-          [:div.ww-task-list-item-checkbox
-           {:on-click #(js/console.log "Clicked!")}
-           "▢"]
-          [:div.ww-task-list-item-summary
-           {;; User can edit these directly
-            :contenteditable "true"
-            ;; when enter key pressed, lose focus
-            :on-key-down #(if (= (.-key %) "Enter") (on-task-summary-edit-completed % t))
-            ;; when exiting focus, apply changes
-            :on-blur #(update-task {:id (:id t) :summary (.-textContent (.-target %))})
-            }
-           (:summary t)]
-          [:div.ww-task-list-item-time-til-due (:id t)]]))])
+          [:div.ww-task-list-item-top-panel
+           [:div.ww-task-list-item-checkbox
+            {:on-click #(js/console.log "Clicked!")}
+            "▢"]
+           [:div.ww-task-list-item-summary
+            {;; User can edit these directly
+             :contenteditable "true"
+             ;; when enter key pressed, lose focus
+             :on-key-down #(if (= (.-key %) "Enter") (on-task-summary-edit-completed % t))
+             ;; when exiting focus, apply changes
+             :on-blur #(do
+                         (update-task {:id (:id t) :summary (.-textContent (.-target %))})
+                         (unexpand-task-list-item-expansion-panel t))
+             ;; 
+             :on-focus #(expand-task-list-item-expansion-panel t)
+             }
+            (:summary t)]
+           [:div.ww-task-list-item-time-til-due (:id t)]]
+          [:div.ww-task-list-item-expansion-panel
+           {:id (str "task-list-item-expansion-panel:" (:id t))}
+           "XXX"]]))])
 
 (defn app
   "Main Application Component"
