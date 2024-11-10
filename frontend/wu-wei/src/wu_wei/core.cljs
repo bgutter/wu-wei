@@ -18,6 +18,57 @@
   [id]
   (reset! selected-list-id id))
 
+(defn backend-request [endpoint cb]
+  (go (let [response (<! (http/get (str "http://localhost:9500" endpoint)
+                                   {:with-credentials? false
+                                    :query-params {"since" 135}}))]
+        (let [status (:status response)]
+          (if (= status 200)
+            (apply cb [status (edn/read-string (:body response))])
+            (apply cb [status nil]))))))
+
+(defn backend-patch [endpoint body callback]
+  (println body)
+  (go (let [response (<! (http/patch (str "http://localhost:9500" endpoint)
+                                     {:with-credentials? false
+                                      :body (pr-str body)
+                                      :headers {"Content-type" "text/edn"}}))]
+        (let [status (:status response)]
+          (if (= status 200)
+            (apply callback [status (edn/read-string (:body response))])
+            (apply callback [status nil]))))))
+
+(declare refresh-tasks)
+(defn update-task
+  ""
+  [task-update-map]
+  (backend-patch "/task" task-update-map #())
+  (refresh-tasks))
+
+(defn get-task [id callback]
+  (backend-request (str "/task/by-id/" id) callback))
+
+(defn get-lists [callback]
+  (backend-request "/list/all" callback))
+
+(defn get-all-tasks [callback]
+  (backend-request "/task/all" callback))
+
+(defn refresh-lists
+  ""
+  []
+  (get-lists #(reset! list-table %2)))
+
+(defn refresh-tasks
+  ""
+  []
+  (get-all-tasks #(reset! task-table %2)))
+
+(defn sync-task
+  ""
+  [task]
+  (backend-patch "/task" task #()))
+
 (defn list-menu-entry
   ""
   [list]
@@ -57,19 +108,37 @@
    [list-menu-lists-section]
    [list-menu-tags-section]])
 
+(defn flash-element [element]
+  (.add (.-classList element) "ww-task-list-item--edit-flash")
+  (js/setTimeout #(.remove (.-classList element) "ww-task-list-item--edit-flash") 500))
+
+(defn on-task-summary-edit-completed [event task]
+  (.blur (.-target event))
+  (let [summary-element (.-target event)
+        task-item-element (.-parentElement summary-element)]
+    (flash-element task-item-element)))
+
 (defn task-list
   "Component showing task list."
   []
   [:div.ww-task-list
    (when (and (not-empty @list-table) @selected-list-id)
-       (for [t (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table)]
+       (for [t (sort-by #(* 1 (js/parseInt (:id %))) (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
+         ^{:key (:id t)}
          [:div.ww-task-list-item
           [:div.ww-task-list-item-checkbox
            {:on-click #(js/console.log "Clicked!")}
            "▢"]
-          [:div.ww-task-list-item-summary (:summary t)]
-          [:p.ww-flexbox-spacer]
-          [:div.ww-task-list-item-time-til-due "10:00PM"]]))])
+          [:div.ww-task-list-item-summary
+           {;; User can edit these directly
+            :contenteditable "true"
+            ;; when enter key pressed, lose focus
+            :on-key-down #(if (= (.-key %) "Enter") (on-task-summary-edit-completed % t))
+            ;; when exiting focus, apply changes
+            :on-blur #(update-task {:id (:id t) :summary (.-textContent (.-target %))})
+            }
+           (:summary t)]
+          [:div.ww-task-list-item-time-til-due (:id t)]]))])
 
 (defn app
   "Main Application Component"
@@ -77,50 +146,6 @@
   [:div.ww-app-body
    [list-menu]
    [task-list]])
-
-(defn backend-request [endpoint cb]
-  (go (let [response (<! (http/get (str "http://localhost:9500" endpoint)
-                                   {:with-credentials? false
-                                    :query-params {"since" 135}}))]
-        (let [status (:status response)]
-          (if (= status 200)
-            (apply cb [status (edn/read-string (:body response))])
-            (apply cb [status nil]))))))
-
-(defn backend-patch [endpoint body callback]
-  (println body)
-  (go (let [response (<! (http/patch (str "http://localhost:9500" endpoint)
-                                     {:with-credentials? false
-                                      :body (pr-str body)
-                                      :headers {"Content-type" "text/edn"}}))]
-        (let [status (:status response)]
-          (if (= status 200)
-            (apply callback [status (edn/read-string (:body response))])
-            (apply callback [status nil]))))))
-
-(defn get-task [id callback]
-  (backend-request (str "/task/by-id/" id) callback))
-
-(defn get-lists [callback]
-  (backend-request "/list/all" callback))
-
-(defn get-all-tasks [callback]
-  (backend-request "/task/all" callback))
-
-(defn refresh-lists
-  ""
-  []
-  (get-lists #(reset! list-table %2)))
-
-(defn refresh-tasks
-  ""
-  []
-  (get-all-tasks #(reset! task-table %2)))
-
-(defn sync-task
-  ""
-  [task]
-  (backend-patch "/task" task #()))
 
 (rd/render [app] (.-body js/document))
 (refresh-lists)

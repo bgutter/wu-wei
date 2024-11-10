@@ -40,10 +40,36 @@ html, body {
     color: gray;
 }
 
-.ww-task-list-item:hover {
-    background: lightgray;
+.ww-task-list-item:focus-within {
+    background: rgb(220,220,255);
     cursor: pointer;
     transition: background 0.15s linear;
+}
+
+.ww-task-list-item:hover:not(:focus-within) {
+    background: rgb(240,240,240);
+    cursor: pointer;
+    transition: background 0.15s linear;
+}
+
+.ww-task-list-item--edit-flash {
+    animation-name: flash;
+    animation-duration: 0.5s;
+    background: white;
+}
+
+@keyframes flash {
+  0% {
+    background: rgb( 200, 200, 150);
+  }
+}
+
+.ww-task-list-item-summary {
+    width: 100%;
+}
+
+.ww-task-list-item-summary:focus {
+    outline: 0px solid transparent;
 }
 
 .ww-task-list-item-checkbox {
