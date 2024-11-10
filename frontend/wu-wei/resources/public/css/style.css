@@ -36,6 +36,10 @@ html, body {
     border-radius: 5px;
 }
 
+.ww-task-list-item--completed {
+    color: gray;
+}
+
 .ww-task-list-item:hover {
     background: lightgray;
     cursor: pointer;

@@ -78,13 +78,6 @@
    [list-menu]
    [task-list]])
 
-;; (defn test-ring []
-;;   (go (let [response (<! (http/get "http://localhost:9500/test"
-;;                                    {:with-credentials? false
-;;                                     :query-params {"since" 135}}))]
-;;         (prn (:status response))
-;;         (prn (map :login (:body response))))))
-
 (defn backend-request [endpoint cb]
   (go (let [response (<! (http/get (str "http://localhost:9500" endpoint)
                                    {:with-credentials? false
@@ -93,6 +86,17 @@
           (if (= status 200)
             (apply cb [status (edn/read-string (:body response))])
             (apply cb [status nil]))))))
+
+(defn backend-patch [endpoint body callback]
+  (println body)
+  (go (let [response (<! (http/patch (str "http://localhost:9500" endpoint)
+                                     {:with-credentials? false
+                                      :body (pr-str body)
+                                      :headers {"Content-type" "text/edn"}}))]
+        (let [status (:status response)]
+          (if (= status 200)
+            (apply callback [status (edn/read-string (:body response))])
+            (apply callback [status nil]))))))
 
 (defn get-task [id callback]
   (backend-request (str "/task/by-id/" id) callback))
@@ -112,6 +116,11 @@
   ""
   []
   (get-all-tasks #(reset! task-table %2)))
+
+(defn sync-task
+  ""
+  [task]
+  (backend-patch "/task" task #()))
 
 (rd/render [app] (.-body js/document))
 (refresh-lists)
