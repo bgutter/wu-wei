@@ -6,10 +6,35 @@
    [clojure.data.json :as json]))
 
 (def list-table
-  #{{:id 1 :name "Work" :icon "👔"}})
+  #{{:id 1 :name "Work" :icon "👔"}
+    {:id 2 :name "Dogs" :icon "🐕"}
+    {:id 3 :name "Errands" :icon "🛒"}})
 
 (def task-table
-  #{{:id 1 :summary "Finish project foobar" :list-id 1}})
+  #{{:id 1 :list-id 1 :summary "Finish project foobar"}
+    {:id 2 :list-id 1 :summary "Feed the dog" }
+    {:id 3 :list-id 1 :summary "Figure out why Clojure has metadata maps." }
+    {:id 4 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 5 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 6 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 7 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 8 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 9 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 10 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 11 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 12 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 13 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 14 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 15 :list-id 2 :summary "Walk the trans-america trail."}
+    {:id 16 :list-id 2 :summary "Walk the trans-america trail."}
+    {:id 17 :list-id 2 :summary "Walk the trans-america trail."}
+    {:id 18 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 19 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 20 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 21 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 22 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 23 :list-id 1 :summary "Walk the trans-america trail."}
+    {:id 24 :list-id 1 :summary "Walk the trans-america trail."}})
 
 (defn task-by-id
   "Get task matching ID."
@@ -32,10 +57,15 @@
         :status  200
         :body    (pr-str (task-by-id id))})
 
+  (GET "/task/all" []
+    {:headers {"Content-type" "text/edn"}
+     :status  200
+     :body    (pr-str task-table)})
+
   (GET "/list/all" []
-       {:headers {"Content-type" "text/edn"}
-        :status  200
-        :body    (pr-str (all-lists))})
+    {:headers {"Content-type" "text/edn"}
+     :status  200
+     :body    (pr-str (all-lists))})
 
   (route/not-found
    {:status 404

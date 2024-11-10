@@ -7,30 +7,41 @@
             [cljs.core.async :refer [<!]]
             [clojure.edn :as edn]))
 
+(def selected-list-id (r/atom nil))
+
 (def list-table (r/atom #{}))
+
+(def task-table (r/atom #{}))
+
+(defn select-list-id
+  ""
+  [id]
+  (reset! selected-list-id id))
 
 (defn list-menu-entry
   ""
-  [icon title entry-count]
+  [list]
   [:div.ww-list-menu-entry
-   [:p.ww-list-menu-entry-icon icon]
-   [:p.ww-list-menu-entry-title title]
+   {:class (if (= @selected-list-id (:id list)) "ww-list-menu-entry--selected" "")
+    :on-click #(select-list-id (:id list))}
+   [:p.ww-list-menu-entry-icon (:icon list)]
+   [:p.ww-list-menu-entry-title (:name list)]
    [:p.ww-flexbox-spacer]
-   [:p.ww-list-menu-entry-count entry-count]])
+   [:p.ww-list-menu-entry-count (:id list)]])
 
 (defn list-menu-lists-section
   ""
   []
   [:div.ww-list-menu-section
-   [:div.ww-list-menu-section-title "Lists"]])
+   [:div.ww-list-menu-section-title "Lists"]
+   (for [list @list-table]
+     [list-menu-entry list])])
 
 (defn list-menu-filters-section
   ""
   []
   [:div.ww-list-menu-section
-   [:div.ww-list-menu-section-title "Filters"]
-   (for [l @list-table]
-     [list-menu-entry (:icon l) (:name l) (:id l)])])
+   [:div.ww-list-menu-section-title "Filters"]])
 
 (defn list-menu-tags-section
   ""
@@ -46,12 +57,26 @@
    [list-menu-lists-section]
    [list-menu-tags-section]])
 
+(defn task-list
+  "Component showing task list."
+  []
+  [:div.ww-task-list
+   (when (and (not-empty @list-table) @selected-list-id)
+       (for [t (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table)]
+         [:div.ww-task-list-item
+          [:div.ww-task-list-item-checkbox
+           {:on-click #(js/console.log "Clicked!")}
+           "▢"]
+          [:div.ww-task-list-item-summary (:summary t)]
+          [:p.ww-flexbox-spacer]
+          [:div.ww-task-list-item-time-til-due "10:00PM"]]))])
+
 (defn app
   "Main Application Component"
   []
   [:div.ww-app-body
    [list-menu]
-   ])
+   [task-list]])
 
 ;; (defn test-ring []
 ;;   (go (let [response (<! (http/get "http://localhost:9500/test"
@@ -75,10 +100,19 @@
 (defn get-lists [callback]
   (backend-request "/list/all" callback))
 
+(defn get-all-tasks [callback]
+  (backend-request "/task/all" callback))
+
 (defn refresh-lists
   ""
   []
   (get-lists #(reset! list-table %2)))
 
+(defn refresh-tasks
+  ""
+  []
+  (get-all-tasks #(reset! task-table %2)))
+
 (rd/render [app] (.-body js/document))
 (refresh-lists)
+(refresh-tasks)

@@ -4,8 +4,57 @@ html, body {
     background: white;
     font-family: sans;
     margin: 0px;
+    padding: 0px;
     display: flex;
     flex-direction: row;
+}
+
+.ww-app-body {
+    display: flex;
+    flex-direction: columns;
+    width: 100%;
+    overflow: hidden;
+}
+
+.ww-task-list {
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.ww-task-list-item {
+    width: 100%;
+    font-size: 0.8em;
+    margin: 3px;
+    padding-left: 4px;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: columns;
+    align-items: center;
+    padding-top: 1px;
+    border-bottom: solid 1px lightgray;
+    border-radius: 5px;
+}
+
+.ww-task-list-item:hover {
+    background: lightgray;
+    cursor: pointer;
+    transition: background 0.15s linear;
+}
+
+.ww-task-list-item-checkbox {
+    /* margin-right: 5px; */
+    /* padding: 2px; */
+    margin: 0px 10px 5px 0px;
+    font-size: 2em;
+    color: blue;
+    font-weight: bold;
+}
+
+.ww-task-list-item-time-til-due {
+    font-size: 0.8em;
+    color: gray;
+    margin-right: 20px;
 }
 
 .ww-flexbox-spacer {
@@ -17,18 +66,31 @@ html, body {
 .ww-list-menu-entry {
     display: flex;
     align-items: center;
-    padding: 0px;
+    padding: 4px;
     margin: 0px 0px 0px 10px;
+    border-radius: 5px;
+    transition: background 0.15s linear;
+}
+
+.ww-list-menu-entry--selected {
+    background: rgb(220,220,255);
+    transition: background 0.15s linear;
+}
+
+.ww-list-menu-entry:hover {
+    background: lightgray;
+    cursor: pointer;
+    transition: background 0.15s linear;
 }
 
 .ww-list-menu-entry-title {
     margin: 0px 5px 0px 5px;
-    font-size: 14px;
+    font-size: 0.8em;
 }
 
 .ww-list-menu-entry-count {
     margin: 0px 5px 0px 5px;
-    font-size: 12px;
+    font-size: 0.8em;
     color: gray;
 }
 
@@ -51,7 +113,7 @@ html, body {
 .ww-list-menu-section-title {
     color: gray;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 0.8em;
     margin: 5px;
     width: 200px;
 }
