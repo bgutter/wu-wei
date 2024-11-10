@@ -7,11 +7,14 @@
             [cljs.core.async :refer [<!]]
             [clojure.edn :as edn]))
 
-(def selected-list-id (r/atom nil))
+(def selected-list-id (r/atom 1))
 
 (def list-table (r/atom #{}))
 
 (def task-table (r/atom #{}))
+
+(def selected-task-item-id (r/atom nil))
+(def task-list-selected-task-item-summary-edited (r/atom nil))
 
 (defn select-list-id
   ""
@@ -112,51 +115,56 @@
   (.add (.-classList element) "ww-task-list-item--edit-flash")
   (js/setTimeout #(.remove (.-classList element) "ww-task-list-item--edit-flash") 500))
 
-(defn on-task-summary-edit-completed [event task]
-  (.blur (.-target event))
-  (let [summary-element (.-target event)
-        task-item-element (.-parentElement (.-parentElement summary-element))]
-    (flash-element task-item-element)))
-
-(defn expand-task-list-item-expansion-panel [task]
-  (let [elem (js/document.getElementById (str "task-list-item-expansion-panel:" (:id task)))]
-    (js/console.log "Expanding " elem)
-    (-> elem .-classList (.add "ww-task-list-item-expansion-panel--expanded"))))
-
-(defn unexpand-task-list-item-expansion-panel [task]
-  (let [elem (js/document.getElementById (str "task-list-item-expansion-panel:" (:id task)))]
-    (js/console.log "Expanding " elem)
-    (-> elem .-classList (.remove "ww-task-list-item-expansion-panel--expanded"))))
+(defn on-task-summary-edit-completed [ctx]
+  (if @task-list-selected-task-item-summary-edited
+    (let [summary-element (js/document.getElementById (:summary-eid ctx))
+        task-item-element (js/document.getElementById (:item-eid ctx))]
+    (flash-element summary-element))))
 
 (defn task-list
   "Component showing task list."
   []
   [:div.ww-task-list
    (when (and (not-empty @list-table) @selected-list-id)
-       (for [t (sort-by #(* 1 (js/parseInt (:id %))) (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
+     (doall (for [t (sort-by #(* 1 (js/parseInt (:id %))) (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
+              (let [is-selected-item (= @selected-task-item-id (:id t))
+                    make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
+                    context  {:task                t
+                              :item-eid            (make-eid "item")
+                              :top-panel-eid       (make-eid "top-panel")
+                              :summary-eid         (make-eid "summary")
+                              :expansion-panel-eid (make-eid "expansion-panel")}]
          ^{:key (:id t)}
          [:div.ww-task-list-item
-          [:div.ww-task-list-item-top-panel
-           [:div.ww-task-list-item-checkbox
-            {:on-click #(js/console.log "Clicked!")}
-            "▢"]
+          {:id (:item-eid context)}
+          [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
+           [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
+            "OPEN"]
            [:div.ww-task-list-item-summary
-            {;; User can edit these directly
+            {:id (:summary-eid context)
+             ;; User can edit these directly
              :contenteditable "true"
              ;; when enter key pressed, lose focus
-             :on-key-down #(if (= (.-key %) "Enter") (on-task-summary-edit-completed % t))
+             :on-key-down #(do
+                             (if (= (.-key %) "Enter")
+                               (.blur (.-target %))
+                               (reset! task-list-selected-task-item-summary-edited true)))
              ;; when exiting focus, apply changes
              :on-blur #(do
+                         (on-task-summary-edit-completed context)
                          (update-task {:id (:id t) :summary (.-textContent (.-target %))})
-                         (unexpand-task-list-item-expansion-panel t))
-             ;; 
-             :on-focus #(expand-task-list-item-expansion-panel t)
+                         (reset! task-list-selected-task-item-summary-edited false)
+                         ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
+                         )
              }
             (:summary t)]
            [:div.ww-task-list-item-time-til-due (:id t)]]
           [:div.ww-task-list-item-expansion-panel
-           {:id (str "task-list-item-expansion-panel:" (:id t))}
-           "XXX"]]))])
+           {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
+           [:div.ww-task-list-item-body
+            {:contenteditable "true"
+             :data-ph "Enter a description..."}]
+           ]]))))])
 
 (defn app
   "Main Application Component"

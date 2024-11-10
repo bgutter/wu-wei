@@ -45,13 +45,30 @@ html, body {
 }
 
 .ww-task-list-item-expansion-panel {
-    height: 0vh;
-    transition: all 0.25s ease-out;
+    height: 0;
+    margin: 0;
+    transition: height 0.25s ease-out;
+    overflow: hidden;
+}
+
+.ww-task-list-item-body {
+    height: 100%;
+    margin: 1em 0 0 1em;
+    padding: 0;
+    padding: 0 0 0 1em;
+    outline: solid 0px transparent;
+    border-left: solid 1px lightgray;
+}
+
+.ww-task-list-item-body:empty:not(:focus):before {
+  content:attr(data-ph);
+  color:grey;
+  font-style:italic;
 }
 
 .ww-task-list-item-expansion-panel--expanded {
-    height: 30vh;
-    transition: all 0.25s ease-out;
+    height: 25vh;
+    transition: height 0.25s ease-out;
     display: block;
 }
 
@@ -59,11 +76,11 @@ html, body {
     color: gray;
 }
 
-.ww-task-list-item:focus-within {
-    background: rgb(220,220,255);
-    cursor: pointer;
-    transition: background 0.15s linear;
-}
+/* .ww-task-list-item:focus-within { */
+/*     background: rgb(220,220,255); */
+/*     cursor: pointer; */
+/*     transition: background 0.15s linear; */
+/* } */
 
 .ww-task-list-item:hover:not(:focus-within) {
     background: rgb(240,240,240);
@@ -85,19 +102,40 @@ html, body {
 
 .ww-task-list-item-summary {
     width: 100%;
+    height: 100%;
+    margin: 0px;
+    padding: 5px 2px 5px 2px;
 }
 
 .ww-task-list-item-summary:focus {
     outline: 0px solid transparent;
+    background: rgb( 240,240,240);
+    border-radius: 5px;
 }
 
 .ww-task-list-item-checkbox {
     /* margin-right: 5px; */
     /* padding: 2px; */
-    margin: 0px 10px 5px 0px;
-    font-size: 2em;
+    padding: 0px 10px 5px 0px;
+    margin-right: 1em;
+    font-size: 1em;
     color: blue;
     font-weight: bold;
+    width: 0.5em;
+    height: 1em;
+    border: solid 2px blue;
+    border-radius: 5px;
+    color: rgb(0,0,0,0.0);
+    overflow: hidden;
+    text-align: center;
+}
+
+.ww-task-list-item-checkbox:hover, .ww-task-list-item-checkbox--expanded {
+    width: 5em;
+    background: rgb( 0, 0, 255, 0.2);
+    color: white;
+    transition: all 0.25s linear;
+    cursor: pointer;
 }
 
 .ww-task-list-item-time-til-due {
