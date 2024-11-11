@@ -16,6 +16,9 @@
 (def selected-task-item-id (r/atom nil))
 (def task-list-selected-task-item-summary-edited (r/atom nil))
 
+(defn task-by-id [id]
+  (first (clojure.set/select #(= (:id %) id) @task-table)))
+
 (defn select-list-id
   ""
   [id]
@@ -138,6 +141,7 @@
          [:div.ww-task-list-item
           {:id (:item-eid context)
            :class (if is-selected-item "ww-task-list-item--selected")}
+
           [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
            [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
             "OPEN"]
@@ -160,14 +164,28 @@
              }
             (:summary t)]
            [:div.ww-task-list-item-time-til-due (:id t)]]
+
           [:div.ww-task-list-item-expansion-panel
            {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
+
            [:div.ww-task-list-item-body
             {:content-editable "true"
              :data-ph "Enter a description..."}]
+
            [:div.ww-task-list-item-bottom-panel
             [:div.ww-task-list-item-scheduling "Due: November 11th"]
-            [:div.ww-flexbox-spacer]]]]))))])
+            (if (:subtask-ids t) [:div.ww-task-list-item-scheduling "⤵️ Recurse"])
+            (if (not (:subtask-ids t)) [:div.ww-task-list-item-scheduling "Add Subtask"])
+            [:div.ww-flexbox-spacer]]]
+
+          [:div.ww-task-list-item-subtasks-panel
+           (if (:subtask-ids t)
+             [:div.ww-task-list-item-subtasks-blurb " + "])
+            (doall
+             (for [subtask-id (:subtask-ids t)]
+               (let [subtask (task-by-id subtask-id)]
+                 [:div.ww-task-list-item-subtasks-blurb
+                  (:summary subtask)])))]]))))])
 
 (defn controls-panel
   ""

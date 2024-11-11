@@ -3,3 +3,40 @@
 Wu-Wei is a personal productivity platform written in ClojureScript.
 
 Documentation to come shortly.
+
+* To Do
+- Change log
+  - What was done on X day? Which changes made to which notes? Changes to tasks? etc
+- Critical path analysis
+- Time estimates
+- Time tracking
+- Calendar view
+- Unblocked task filter (tie to tree 'leaves')
+  - Tree view
+- Org or markdown formatting for body text
+- General notebook section
+- Links (via org?)
+- recurring tasks
+  - Repetition history for recurring tasks
+  - Habit support?
+- Ticktick import
+- Settings menu
+  - Advanced mode EDN editing
+  - Settings persistence
+- Dark mode
+  - CSS variables, properties?
+- Task dependencies / mosaic view (recursive grids?)
+
+tree -> describe path through tasks to completion
+
+groups (?) -> non-tree-like / arbitrary grouping, recursive?
+
+Filter task buttons -- only me, arbitrary based on EDN config, flatten or single level
+
+Stack items above as navigating down dependencies
+
+Multi-user support -- show assignee in summary row, expansion panel button
+
+Clear/na du dates
+
+Color scheduling based on due date and effort estimate

@@ -56,6 +56,35 @@ html, body {
     overflow: hidden;
 }
 
+.ww-task-list-item-subtasks-panel {
+    display: none;
+    margin: 0;
+    width: 100%;
+    padding-right: 5px;
+    transition: height 0.25s ease-out;
+    overflow: hidden;
+    /* border-top: solid 1px lightgray; */
+}
+
+.ww-task-list-item--selected .ww-task-list-item-subtasks-panel {
+    max-height: 100px;
+    transition: height 0.25s ease-out;
+    display: flex;
+    flex-direction: columns;
+    flex-wrap: wrap;
+}
+
+.ww-task-list-item-subtasks-blurb {
+    border: solid 2px gray;
+    border-radius: 5px;
+    padding: 3px;
+    color: gray;
+    margin-right: 2px;
+    margin-left: 2px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
 .ww-task-list-item-body {
     height: 140px;
     width: 95%;
@@ -106,6 +135,7 @@ html, body {
 
 .ww-task-list-item--selected:hover {
     background: white;
+    cursor: auto;
 }
 
 .ww-task-list-item--edit-flash {
@@ -164,6 +194,16 @@ html, body {
     font-size: 0.8em;
     color: gray;
     margin-right: 20px;
+    position: relative;
+    width: 10px;
+    left: 0px;
+}
+
+.ww-task-list-item--selected .ww-task-list-item-time-til-due {
+    left: 30px;
+    /* width: 0px; */
+    transition: left 0.25s ease-out;
+    /* transition: width 0.25s ease-out; */
 }
 
 .ww-flexbox-spacer {
