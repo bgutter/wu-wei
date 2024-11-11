@@ -136,14 +136,15 @@
                               :expansion-panel-eid (make-eid "expansion-panel")}]
          ^{:key (:id t)}
          [:div.ww-task-list-item
-          {:id (:item-eid context)}
+          {:id (:item-eid context)
+           :class (if is-selected-item "ww-task-list-item--selected")}
           [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
            [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
             "OPEN"]
            [:div.ww-task-list-item-summary
             {:id (:summary-eid context)
              ;; User can edit these directly
-             :contenteditable "true"
+             :content-editable "true"
              ;; when enter key pressed, lose focus
              :on-key-down #(do
                              (if (= (.-key %) "Enter")
@@ -162,18 +163,27 @@
           [:div.ww-task-list-item-expansion-panel
            {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
            [:div.ww-task-list-item-body
-            {:contenteditable "true"
+            {:content-editable "true"
              :data-ph "Enter a description..."}]
            [:div.ww-task-list-item-bottom-panel
             [:div.ww-task-list-item-scheduling "Due: November 11th"]
             [:div.ww-flexbox-spacer]]]]))))])
+
+(defn controls-panel
+  ""
+  []
+  [:div.ww-controls-panel
+   [:div "👤"]
+   [:div.ww-flexbox-spacer]
+   [:div "⚙️"]])
 
 (defn app
   "Main Application Component"
   []
   [:div.ww-app-body
    [list-menu]
-   [task-list]])
+   [task-list]
+   [controls-panel]])
 
 (rd/render [app] (.-body js/document))
 (refresh-lists)

@@ -20,12 +20,14 @@ html, body {
     width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    background: rgb( 255, 255, 255 );
 }
 
 .ww-task-list-item {
+    background: white;
     width: 100%;
     font-size: 0.8em;
-    margin: 3px;
+    margin: 0px 3px 0px 3px;
     padding-left: 4px;
     padding-right: 4px;
     /* display: flex; */
@@ -34,6 +36,7 @@ html, body {
     border-bottom: solid 1px lightgray;
     border-radius: 5px;
     overflow: hidden;
+    transition: background 0.25s ease-out;
 }
 
 .ww-task-list-item-top-panel {
@@ -78,7 +81,7 @@ html, body {
   font-style:italic;
 }
 
-.ww-task-list-item-expansion-panel--expanded {
+.ww-task-list-item--selected .ww-task-list-item-expansion-panel {
     height: 190px;
     transition: height 0.25s ease-out;
     display: block;
@@ -94,10 +97,15 @@ html, body {
 /*     transition: background 0.15s linear; */
 /* } */
 
-.ww-task-list-item:hover:not( :has( .ww-task-list-item-expansion-panel--expanded ) ) {
+/* .ww-task-list-item:hover:not( :has( .ww-task-list-item-expansion-panel--expanded ) ) { */
+.ww-task-list-item:hover {
     background: rgb(240,240,240);
     cursor: pointer;
     transition: background 0.15s linear;
+}
+
+.ww-task-list-item--selected:hover {
+    background: white;
 }
 
 .ww-task-list-item--edit-flash {
@@ -144,7 +152,7 @@ html, body {
     text-align: center;
 }
 
-.ww-task-list-item-checkbox:hover, .ww-task-list-item-checkbox--expanded {
+.ww-task-list-item--selected .ww-task-list-item-checkbox, .ww-task-list-item-checkbox:hover {
     width: 5em;
     background: rgb( 0, 0, 255, 0.2);
     color: blue;
@@ -201,8 +209,11 @@ html, body {
 
 .ww-list-menu {
     height: 100%;
-    background: white;
+    background: rgb( 240,240,240);
     border: solid 1px lightgray;
+    /* box-shadow: 5px 0px 10px lightgray; */
+    /* position: relative; */
+    /* z-index: 10; */
 }
 
 .ww-list-menu-section {
@@ -230,6 +241,13 @@ html, body {
     border-radius: 5px;
     padding: 3px;
     margin: 2px;
+    position: relative;
+    top: 40px;
+}
+
+.ww-task-list-item--selected .ww-task-list-item-scheduling {
+    top: 0px;
+    transition: top 0.25s 0.25s ease-out;
 }
 
 .ww-task-list-item-scheduling:hover {
@@ -237,4 +255,15 @@ html, body {
     border: solid 2px gray;
     background: rgb( 240, 240, 240 );
     transition: background 0.25s ease-out;
+}
+
+.ww-controls-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgb(240,240,240);
+    width: 10vw;
+    box-shadow: -5px 0px 5px lightgray;
+    font-size: 2em;
 }
