@@ -164,7 +164,9 @@
            [:div.ww-task-list-item-body
             {:contenteditable "true"
              :data-ph "Enter a description..."}]
-           ]]))))])
+           [:div.ww-task-list-item-bottom-panel
+            [:div.ww-task-list-item-scheduling "Due: November 11th"]
+            [:div.ww-flexbox-spacer]]]]))))])
 
 (defn app
   "Main Application Component"

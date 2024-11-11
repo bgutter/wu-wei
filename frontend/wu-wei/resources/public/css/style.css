@@ -47,17 +47,29 @@ html, body {
 .ww-task-list-item-expansion-panel {
     height: 0;
     margin: 0;
+    width: 100%;
+    padding-right: 5px;
     transition: height 0.25s ease-out;
     overflow: hidden;
 }
 
 .ww-task-list-item-body {
-    height: 100%;
-    margin: 1em 0 0 1em;
-    padding: 0;
-    padding: 0 0 0 1em;
+    height: 140px;
+    width: 95%;
+    margin: 5px;
+    padding: 2px;
+    padding-left: 10px;
     outline: solid 0px transparent;
-    border-left: solid 1px lightgray;
+    /* border-left: solid 1px lightgray; */
+    /* border-top: solid 1px lightgray; */
+    border-radius: 5px;
+    overflow-y: auto;
+    transition: background 0.25s ease-out;
+}
+
+.ww-task-list-item-body:focus {
+    background: rgb( 240, 240, 240 );
+    transition: background 0.25s ease-out;
 }
 
 .ww-task-list-item-body:empty:not(:focus):before {
@@ -67,7 +79,7 @@ html, body {
 }
 
 .ww-task-list-item-expansion-panel--expanded {
-    height: 25vh;
+    height: 190px;
     transition: height 0.25s ease-out;
     display: block;
 }
@@ -82,7 +94,7 @@ html, body {
 /*     transition: background 0.15s linear; */
 /* } */
 
-.ww-task-list-item:hover:not(:focus-within) {
+.ww-task-list-item:hover:not( :has( .ww-task-list-item-expansion-panel--expanded ) ) {
     background: rgb(240,240,240);
     cursor: pointer;
     transition: background 0.15s linear;
@@ -91,12 +103,13 @@ html, body {
 .ww-task-list-item--edit-flash {
     animation-name: flash;
     animation-duration: 0.5s;
-    background: white;
+    background: transparent;
+    border-radius: 5px;
 }
 
 @keyframes flash {
   0% {
-    background: rgb( 200, 200, 150);
+    background: rgb( 220, 220, 255);
   }
 }
 
@@ -111,6 +124,7 @@ html, body {
     outline: 0px solid transparent;
     background: rgb( 240,240,240);
     border-radius: 5px;
+    transition: background 0.25s ease-out;
 }
 
 .ww-task-list-item-checkbox {
@@ -133,8 +147,8 @@ html, body {
 .ww-task-list-item-checkbox:hover, .ww-task-list-item-checkbox--expanded {
     width: 5em;
     background: rgb( 0, 0, 255, 0.2);
-    color: white;
-    transition: all 0.25s linear;
+    color: blue;
+    transition: all 0.25s ease-out;
     cursor: pointer;
 }
 
@@ -203,4 +217,24 @@ html, body {
     font-size: 0.8em;
     margin: 5px;
     width: 200px;
+}
+
+.ww-task-list-item-bottom-panel {
+    display: flex;
+    flex-direction: columns;
+}
+
+.ww-task-list-item-scheduling {
+    color: gray;
+    border: solid 2px gray;
+    border-radius: 5px;
+    padding: 3px;
+    margin: 2px;
+}
+
+.ww-task-list-item-scheduling:hover {
+    cursor: pointer;
+    border: solid 2px gray;
+    background: rgb( 240, 240, 240 );
+    transition: background 0.25s ease-out;
 }
