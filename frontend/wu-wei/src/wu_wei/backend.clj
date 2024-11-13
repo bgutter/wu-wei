@@ -11,12 +11,12 @@
     {:id 3 :name "Errands" :icon "🛒"}})
 
 (def task-table
-  (atom #{{:id 2 :list-id 1 :summary "Finish data cleaning script" }
+  (atom #{{:id 2 :list-id 1 :summary "Finish data cleaning script" :subtask-ids #{21} }
           {:id 3 :list-id 1 :summary "Figure out why Clojure has metadata maps." }
           {:id 4 :list-id 1 :summary "Calibrate flux oximeter."}
           {:id 5 :list-id 1 :summary "Acquire synergy contract."}
           {:id 6 :list-id 1 :summary "Fly to the moon"}
-          {:id 7 :list-id 1 :summary "Finish project foobar" :subtask-ids #{2 3 4 5 6 7} }
+          {:id 7 :list-id 1 :summary "Finish project foobar" :subtask-ids #{2 3 4 5 6} }
           {:id 1 :list-id 1 :summary "Walk the trans-america trail."}
           {:id 8 :list-id 1 :summary "Walk the trans-america trail."}
           {:id 9 :list-id 1 :summary "Walk the trans-america trail."}
@@ -31,7 +31,7 @@
           {:id 18 :list-id 1 :summary "Walk the trans-america trail."}
           {:id 19 :list-id 1 :summary "Walk the trans-america trail."}
           {:id 20 :list-id 1 :summary "Walk the trans-america trail."}
-          {:id 21 :list-id 1 :summary "Walk the trans-america trail."}
+          {:id 21 :list-id 1 :summary "Pick up the dry cleaning"}
           {:id 22 :list-id 1 :summary "Walk the trans-america trail."}
           {:id 23 :list-id 1 :summary "Walk the trans-america trail."}
           {:id 24 :list-id 1 :summary "Walk the trans-america trail."}}))

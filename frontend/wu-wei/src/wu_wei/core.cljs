@@ -121,6 +121,9 @@
   [task]
   (swap! context-stack conj task))
 
+(defn reset-context []
+  (reset! context-stack []))
+
 (defn flash-element [element]
   (.add (.-classList element) "ww-task-list-item--edit-flash")
   (js/setTimeout #(.remove (.-classList element) "ww-task-list-item--edit-flash") 500))
@@ -137,13 +140,32 @@
   [:div.ww-task-list
    [:div.ww-task-context-list
     (when (seq @context-stack)
-      [:div (doall (for [t @context-stack]
-               ^{:key (str "STACK:" (:id t))}
-                 [:div.ww-task-list-item (:summary t)]))
-       [:div.ww-task-list-context-separator]
+      [:div
+       (let
+           [list (first (clojure.set/select #(= (:id %) @selected-list-id) @list-table))]
+         [:div.ww-task-list-context-item
+          {:on-click reset-context}
+          (:icon list)
+          (:name list)
+          ])
+       (doall
+        (map-indexed
+         (fn [context-index t]
+           ^{:key (str "STACK:" (:id t))}
+           [:div.ww-task-list-context-item
+            {:on-click #(reset! context-stack (subvec @context-stack 0 (inc context-index)))}
+            (str "⤵️ " (:summary t))])
+         @context-stack))
        ])]
-   (when (and (not-empty @list-table) @selected-list-id)
-     (doall (for [t (sort-by #(* 1 (js/parseInt (:id %))) (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
+   (when (seq @context-stack)
+     [:div.ww-task-list-context-separator
+        "Direct Subtasks"])
+   (when (and (seq @list-table) @selected-list-id)
+     (let
+         [task-seq (if (seq @context-stack)
+                     (map task-by-id (:subtask-ids (last @context-stack)))
+                     (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
+     (doall (for [t (sort-by #(* 1 (js/parseInt (:id %))) task-seq)]
               (let [is-selected-item (= @selected-task-item-id (:id t))
                     make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
                     context  {:task                t
@@ -190,6 +212,7 @@
              [:div.ww-task-list-item-scheduling "Start: November 2nd"]
              [:div.ww-task-list-item-scheduling "Due: November 11th"]
              [:div.ww-task-list-item-scheduling "Owner: Samantha"]
+             [:div.ww-task-list-item-scheduling "Effort: 3D"]
              (if (:subtask-ids t) [:div.ww-task-list-item-scheduling
                                    {:on-click #(recurse-into-task t)}
                                    "⤵️ Recurse"])
@@ -206,7 +229,7 @@
               (for [subtask-id (:subtask-ids t)]
                 (let [subtask (task-by-id subtask-id)]
                   [:div.ww-task-list-item-subtasks-blurb
-                   (:summary subtask)])))]]]))))])
+                   (:summary subtask)])))]]])))))])
 
 (defn controls-panel
   ""

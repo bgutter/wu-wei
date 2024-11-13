@@ -39,6 +39,17 @@ html, body {
     transition: background 0.25s ease-out;
 }
 
+.ww-task-context-list {
+    box-shadow: 0px 5px 5px gray;
+    position: relative;
+    z-index: 10;
+}
+
+.ww-task-list-context-item {
+    border-bottom: solid 1px lightgray;
+    cursor: pointer;
+}
+
 .ww-task-list-item-top-panel {
     display: flex;
     flex-direction: columns;
@@ -48,8 +59,12 @@ html, body {
 }
 
 .ww-task-list-context-separator {
-    background: gray;
-    height: 1em;
+    /* background-image: linear-gradient(gray, lightgray); */
+    background: lightgray;
+    color: black;
+    font-size: 0.8em;
+    padding-top: 0.3em;
+    /* height: 1em; */
 }
 
 .ww-task-list-item-expansion-panel {
