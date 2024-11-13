@@ -40,3 +40,17 @@ Multi-user support -- show assignee in summary row, expansion panel button
 Clear/na du dates
 
 Color scheduling based on due date and effort estimate
+
+Direct child items grouped at top -- then all non-direct descendents.
+
+Breadcrumb sandwich over list
+[goal/task/task/task -- list is subtasks of that]
+
+Left bar ideas:
+lists -> epics?
+shortcuts / watch list
+today -- tasks to finish?
+today -- deadlines and start dates coming up?
+Quick filters (mine?)
+
+Template subtrees

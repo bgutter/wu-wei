@@ -16,6 +16,8 @@
 (def selected-task-item-id (r/atom nil))
 (def task-list-selected-task-item-summary-edited (r/atom nil))
 
+(def context-stack (r/atom []))
+
 (defn task-by-id [id]
   (first (clojure.set/select #(= (:id %) id) @task-table)))
 
@@ -114,6 +116,11 @@
    [list-menu-lists-section]
    [list-menu-tags-section]])
 
+(defn recurse-into-task
+  ""
+  [task]
+  (swap! context-stack conj task))
+
 (defn flash-element [element]
   (.add (.-classList element) "ww-task-list-item--edit-flash")
   (js/setTimeout #(.remove (.-classList element) "ww-task-list-item--edit-flash") 500))
@@ -128,6 +135,13 @@
   "Component showing task list."
   []
   [:div.ww-task-list
+   [:div.ww-task-context-list
+    (when (seq @context-stack)
+      [:div (doall (for [t @context-stack]
+               ^{:key (str "STACK:" (:id t))}
+                 [:div.ww-task-list-item (:summary t)]))
+       [:div.ww-task-list-context-separator]
+       ])]
    (when (and (not-empty @list-table) @selected-list-id)
      (doall (for [t (sort-by #(* 1 (js/parseInt (:id %))) (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
               (let [is-selected-item (= @selected-task-item-id (:id t))
@@ -165,27 +179,34 @@
             (:summary t)]
            [:div.ww-task-list-item-time-til-due (:id t)]]
 
-          [:div.ww-task-list-item-expansion-panel
-           {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
+           [:div.ww-task-list-item-expansion-panel
+            {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
 
-           [:div.ww-task-list-item-body
-            {:content-editable "true"
-             :data-ph "Enter a description..."}]
+            [:div.ww-task-list-item-body
+             {:content-editable "true"
+              :data-ph "Enter a description..."}]
 
-           [:div.ww-task-list-item-bottom-panel
-            [:div.ww-task-list-item-scheduling "Due: November 11th"]
-            (if (:subtask-ids t) [:div.ww-task-list-item-scheduling "⤵️ Recurse"])
-            (if (not (:subtask-ids t)) [:div.ww-task-list-item-scheduling "Add Subtask"])
-            [:div.ww-flexbox-spacer]]]
+            [:div.ww-task-list-item-bottom-panel
+             [:div.ww-task-list-item-scheduling "Start: November 2nd"]
+             [:div.ww-task-list-item-scheduling "Due: November 11th"]
+             [:div.ww-task-list-item-scheduling "Owner: Samantha"]
+             (if (:subtask-ids t) [:div.ww-task-list-item-scheduling
+                                   {:on-click #(recurse-into-task t)}
+                                   "⤵️ Recurse"])
+             (if (not (:subtask-ids t)) [:div.ww-task-list-item-scheduling "Add Subtask"])
+             [:div.ww-flexbox-spacer]]
 
-          [:div.ww-task-list-item-subtasks-panel
-           (if (:subtask-ids t)
-             [:div.ww-task-list-item-subtasks-blurb " + "])
-            (doall
-             (for [subtask-id (:subtask-ids t)]
-               (let [subtask (task-by-id subtask-id)]
-                 [:div.ww-task-list-item-subtasks-blurb
-                  (:summary subtask)])))]]))))])
+            (if (not (empty? (:subtask-ids t)))
+              [:div.ww-task-list-expansion-panel-section-header-div "SUBTASKS"])
+
+            [:div.ww-task-list-item-subtasks-panel
+             (if (:subtask-ids t)
+               [:div.ww-task-list-item-subtasks-blurb " + "])
+             (doall
+              (for [subtask-id (:subtask-ids t)]
+                (let [subtask (task-by-id subtask-id)]
+                  [:div.ww-task-list-item-subtasks-blurb
+                   (:summary subtask)])))]]]))))])
 
 (defn controls-panel
   ""
