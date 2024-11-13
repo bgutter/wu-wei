@@ -55,3 +55,12 @@ today -- deadlines and start dates coming up?
 Quick filters (mine?)
 
 Template subtrees
+
+Context specific settings? Implement as EDN data. Applies globally, or to task+subtask
+Config options:
+- Statuses (Open/Done/In Progress) and legal transitions
+- Required properties (assignee, effort, etc)
+
+Required properties -- red highlight, exclamation point icon when a required property is missing on a task.
+Also alert on open after due date?
+Unstarted after Due Date - Effort Estimate?

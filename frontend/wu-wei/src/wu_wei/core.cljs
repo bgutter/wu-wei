@@ -122,7 +122,8 @@
   (swap! context-stack conj task))
 
 (defn reset-context []
-  (reset! context-stack []))
+  (reset! context-stack [])
+  (reset! selected-task-item-id nil))
 
 (defn flash-element [element]
   (.add (.-classList element) "ww-task-list-item--edit-flash")
@@ -153,7 +154,9 @@
          (fn [context-index t]
            ^{:key (str "STACK:" (:id t))}
            [:div.ww-task-list-context-item
-            {:on-click #(reset! context-stack (subvec @context-stack 0 (inc context-index)))}
+            {:on-click #(do
+                          (reset! context-stack (subvec @context-stack 0 (inc context-index)))
+                          (reset! selected-task-item-id nil))}
             (str "⤵️ " (:summary t))])
          @context-stack))
        ])]
@@ -213,9 +216,6 @@
              [:div.ww-task-list-item-scheduling "Due: November 11th"]
              [:div.ww-task-list-item-scheduling "Owner: Samantha"]
              [:div.ww-task-list-item-scheduling "Effort: 3D"]
-             (if (:subtask-ids t) [:div.ww-task-list-item-scheduling
-                                   {:on-click #(recurse-into-task t)}
-                                   "⤵️ Recurse"])
              (if (not (:subtask-ids t)) [:div.ww-task-list-item-scheduling "Add Subtask"])
              [:div.ww-flexbox-spacer]]
 
@@ -224,12 +224,16 @@
 
             [:div.ww-task-list-item-subtasks-panel
              (if (:subtask-ids t)
-               [:div.ww-task-list-item-subtasks-blurb " + "])
+               [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
+             (if (seq (:subtask-ids t))
+               [:div.ww-task-list-item-scheduling
+                {:on-click #(recurse-into-task t)}
+                "⤵️ Recurse"])
              (doall
               (for [subtask-id (:subtask-ids t)]
                 (let [subtask (task-by-id subtask-id)]
                   [:div.ww-task-list-item-subtasks-blurb
-                   (:summary subtask)])))]]])))))])
+                   (str " ▢ " (:summary subtask))])))]]])))))])
 
 (defn controls-panel
   ""
