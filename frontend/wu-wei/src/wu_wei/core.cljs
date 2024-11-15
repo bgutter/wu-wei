@@ -26,6 +26,16 @@
   [id]
   (reset! selected-list-id id))
 
+(defn backend-put [endpoint body cb]
+  (go (let [response (<! (http/put (str "http://localhost:9500" endpoint)
+                                   {:with-credentials? false
+                                    :body (pr-str body)
+                                    :headers {"Content-type" "text/edn"}}))]
+        (let [status (:status response)]
+          (if (= status 200)
+            (apply cb [status (edn/read-string (:body response))])
+            (apply cb [status nil]))))))
+
 (defn backend-request [endpoint cb]
   (go (let [response (<! (http/get (str "http://localhost:9500" endpoint)
                                    {:with-credentials? false
@@ -50,8 +60,23 @@
 (defn update-task
   ""
   [task-update-map]
+  (println "Updating " task-update-map)
   (backend-patch "/task" task-update-map #())
   (refresh-tasks))
+
+(defn make-new-task-current-context [task-content]
+  (let
+      [completed-task         (merge {:list-id @selected-list-id} task-content)
+       parent-task            (last @context-stack)
+       parent-subtask-ids     (:subtask-ids parent-task)]
+    (println (str "MAKEW NEW TASK: " completed-task parent-task parent-subtask-ids))
+    (backend-put "/task" completed-task
+                 (fn callback [status body-edn]
+                   (println (str "Processing callback: " status body-edn))
+                   (let
+                       [updated-subtask-ids (conj parent-subtask-ids (:id body-edn))
+                        updated-task        (merge parent-task {:subtask-ids updated-subtask-ids})]
+                     (update-task updated-task))))))
 
 (defn get-task [id callback]
   (backend-request (str "/task/by-id/" id) callback))
@@ -163,6 +188,17 @@
    (when (seq @context-stack)
      [:div.ww-task-list-context-separator
         "Direct Subtasks"])
+   [:div.ww-task-creation-box
+    {:content-editable true
+     :data-ph (if (seq @context-stack) "New Subtask..." "New task...")
+     :on-key-down #(do
+                     (js/console.log "Pressed" (.-key %))
+                     (if (= (.-key %) "Enter")
+                       (do
+                         (make-new-task-current-context
+                          {:summary (.-textContent (.-target %))})
+                         (set! (-> % .-target .-textContent) "")
+                         (.preventDefault %))))}]
    (when (and (seq @list-table) @selected-list-id)
      (let
          [task-seq (if (seq @context-stack)
@@ -184,6 +220,8 @@
           [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
            [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
             "OPEN"]
+           (if (seq (:subtask-ids t))
+               [:div "⋮⋮⋮"])
            [:div.ww-task-list-item-summary
             {:id (:summary-eid context)
              ;; User can edit these directly
@@ -220,7 +258,7 @@
              [:div.ww-flexbox-spacer]]
 
             (if (not (empty? (:subtask-ids t)))
-              [:div.ww-task-list-expansion-panel-section-header-div "SUBTASKS"])
+              [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
 
             [:div.ww-task-list-item-subtasks-panel
              (if (:subtask-ids t)

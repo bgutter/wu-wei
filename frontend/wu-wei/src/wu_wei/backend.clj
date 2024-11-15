@@ -1,6 +1,6 @@
 (ns wu-wei.backend
   (:require
-   [compojure.core :refer [defroutes GET PATCH]]
+   [compojure.core :refer [defroutes GET PATCH PUT]]
    [compojure.coercions :refer [as-int]]
    [compojure.route :as route]
    [clojure.data.json :as json]))
@@ -33,6 +33,9 @@
   [id]
   (first (clojure.set/select #(= (:id %) id) @task-table)))
 
+(defn next-free-id []
+  (inc (apply max (filter some? (map :id @task-table)))))
+
 (defn update-task
   "Update fields for a given task.
   Task partial data must include :id."
@@ -47,11 +50,31 @@
     (println "Updating task " orig-task " to " new-task " -- " updated-table)
     (write-all-data)))
 
+(defn create-task
+  "Slap an :id in here and add it to the table."
+  [task-partial]
+  (let
+      [id            (next-free-id)
+       new-task      (assoc task-partial :id id)
+       updated-table (set (conj @task-table new-task))]
+    (reset! task-table updated-table)
+    (println "Added new task " new-task)
+    new-task))
+
 (defroutes handler
 
    (GET "/test" []
      {:status 200
       :body "Ring has been tested"})
+
+  (PUT "/task" request
+       (let [body (-> (:body request)
+                        slurp
+                        read-string)]
+         (let [new-task (create-task body)]
+           {:headers {"Content-type" "text/edn"}
+            :status  200
+            :body    (pr-str new-task)})))
 
    (GET "/task/by-id/:id" [id :<< as-int]
      {:headers {"Content-type" "text/edn"}

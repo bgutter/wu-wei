@@ -64,3 +64,11 @@ Config options:
 Required properties -- red highlight, exclamation point icon when a required property is missing on a task.
 Also alert on open after due date?
 Unstarted after Due Date - Effort Estimate?
+
+When no context stack, show all tasks in list. Sort options include BFS and DFS?
+
+---
+
+Notebook
+Today page, calendar view to view past daily notes
+Inline linking of tasks

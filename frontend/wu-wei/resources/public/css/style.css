@@ -16,6 +16,18 @@ html, body {
     overflow: hidden;
 }
 
+.ww-task-creation-box {
+    background: lightgray;
+    border-radius: 5px;
+    margin: 7px;
+    padding: 7px;
+    font-size: 0.9em;
+}
+
+.ww-task-creation-box:empty:not(:focus):before {
+    content: attr(data-ph);
+}
+
 .ww-task-list {
     width: 100%;
     overflow-y: auto;
@@ -70,17 +82,18 @@ html, body {
 .ww-task-list-item-expansion-panel {
     width: 100%;
     height: 0px;
-    transition: height 0.25s ease-out;
     overflow: hidden;
-    transition: height 1s linear;
     opacity: 0%;
     transition: opacity 0.25s 0.25s ease-out;
+    /* transition: height 0.25s ease-out; */
 }
 
 .ww-task-list-item--selected .ww-task-list-item-expansion-panel {
     width: 100%;
     height: auto;
+    /* height: 200px; */
     transition: height 0.25s ease-out;
+
     overflow: hidden;
     /* Slide in from bottom, outside visible area */
     /* transition: top 0.25s 0.25s ease-out; */
