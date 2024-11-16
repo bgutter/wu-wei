@@ -7,6 +7,7 @@
 
 (def app-data-path (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
 
+(declare list-table task-table)
 (defn write-all-data
   "Dump all backend state to `app-data-path'."
   []

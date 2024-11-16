@@ -2,73 +2,347 @@
 
 Wu-Wei is a personal productivity platform written in ClojureScript.
 
-Documentation to come shortly.
+* Highlights
 
-* To Do
-- Change log
-  - What was done on X day? Which changes made to which notes? Changes to tasks? etc
-- Critical path analysis
-- Time estimates
-- Time tracking
-- Calendar view
-- Unblocked task filter (tie to tree 'leaves')
-  - Tree view
-- Org or markdown formatting for body text
-- General notebook section
-- Links (via org?)
-- recurring tasks
-  - Repetition history for recurring tasks
-  - Habit support?
-- Ticktick import
-- Settings menu
-  - Advanced mode EDN editing
-  - Settings persistence
-- Dark mode
-  - CSS variables, properties?
-- Task dependencies / mosaic view (recursive grids?)
+* Installation
 
-tree -> describe path through tasks to completion
+* Usage
 
-groups (?) -> non-tree-like / arbitrary grouping, recursive?
+* Ideological Approach
 
-Filter task buttons -- only me, arbitrary based on EDN config, flatten or single level
+The following values exist in roughly sorted order.
 
-Stack items above as navigating down dependencies
+** Keep the Project Enjoyable to Extend and Develop
 
-Multi-user support -- show assignee in summary row, expansion panel button
+It is engineering heresy to prioritize the implementation details of a
+product above the product itself. However, that is what I intend to do
+here. I have a few reasons for this.
 
-Clear/na du dates
+First, there are plethora of existing options out there for both task
+management and personal knowledge management. Many of these are
+well-supported, thoroughly monetized, and widely-adopted. I do not
+anticipate or aspire for Wu-Wei to displace the market share of any of
+these solutions. Mass-market appeal is specifically excluded as a goal
+of this project.
 
-Color scheduling based on due date and effort estimate
+Rather, I am writing this primarily for my own use, based on my
+experiences and frustrations with other solutions. I also expect that
+there are many others like myself who will also enjoy using Wu-Wei,
+and appreciate these same implementation choices, which are uniquely
+unavailable in competing products.
 
-Direct child items grouped at top -- then all non-direct descendents.
-Indirect subtask section under direct subtasks
+*** Lisp
 
-Breadcrumb sandwich over list
-[goal/task/task/task -- list is subtasks of that]
+Of these implementation decisions, the one closest to my heart is the
+use of Lisp for both the frontend and backend. Lisp supports joyful
+and rapid coding, and this makes it especially well-suited to software
+projects written by volunteers in their spare time. Right now, Wu-Wei
+uses the Clojure programming language -- a Lisp dialect -- due to the
+exceptional maturity of the Clojurescript ecosystem. That being said,
+I would not be against the use of other Lisp dialects (particularly
+Common Lisp) should they be more appropriate down the road.
 
-Left bar ideas:
-lists -> epics?
-shortcuts / watch list
-today -- tasks to finish?
-today -- deadlines and start dates coming up?
-Quick filters (mine?)
+*** FOSS
 
-Template subtrees
+The second critical implementation detail of Wu-Wei is that it shall
+be open source. Personal organization systems quickly become integral
+to one's routine. They will invest hundreds of hours configuring and
+populating these systems with every detail of their daily lives. To
+hold this information captive in a system which cannot be modified,
+reproduced, extended, or meaningfully debugged by oneself is, in my
+opinion, abhorrent.
 
-Context specific settings? Implement as EDN data. Applies globally, or to task+subtask
-Config options:
-- Statuses (Open/Done/In Progress) and legal transitions
-- Required properties (assignee, effort, etc)
+*** Self-Hosting
 
-Required properties -- red highlight, exclamation point icon when a required property is missing on a task.
-Also alert on open after due date?
-Unstarted after Due Date - Effort Estimate?
+Wu-Wei will cater to individuals and teams who prefer on-site
+deployment, which keeps all of their personal information on their own
+local machines.
 
-When no context stack, show all tasks in list. Sort options include BFS and DFS?
+** Scale Complexity with Need
 
----
+The features and abstractions that make advanced roadmapping possible
+within Wu-Wei should not impose overhead or burden on more simple
+projects which do not need these things.
 
-Notebook
-Today page, calendar view to view past daily notes
-Inline linking of tasks
+A new Wu-Wei account should look and behave like any other trivially
+simple to-do list application. Scheduling, effort estimates, recursive
+subtask browsing, and so on, should be obviously available, but out of
+the way until they are wanted.
+
+** Support a Getting Things Done (GTD) Approach by Default
+
+This is not the only workflow eligible for support, but, it will be
+given special attention whenever design decisions are made. New users
+will be given an inbox, shown the capture system, and encouraged to
+sort their inbox periodically. A Task status of "Next" will be
+available by default, and so on.
+
+** Server/Client Architecture
+
+Even the best organization system is useless if you cannot access
+it. A primary goal of Wu-Wei is to be fully available anywhere that a
+web browser is available.
+
+** Separate Keyboard and Touch Interfaces
+
+Wu-Wei will have two no-compromise interfaces. One optimized for
+keyboard and mouse interaction, and a separate interface for
+touchscreens and on-screen keyboards. There is no practical benefit to
+a single user interface that attempts to provide half-assed support to
+both use-cases, and Wu-Wei will not venture down that path.
+
+* Brainstorm, Requirements, Roadmap
+
+** Top-Level Views
+
+Plan, Do, Document
+
+*** Tasking & Execution Roadmapping
+
+Tasks are created, organized, and edited here.
+
+*** Calendar & Time Tracking
+
+Work for tasks is scheduled, deadlines illustrated, and effort-spent
+can be tracked here.
+
+*** Note-Taking and PKMS
+
+Depot for information relevant to tasking.
+
+** Decomposition of Tasks into Subtasks as a Core Abstraction
+
+Subtasks should not be an afterthought in Wu-Wei, as they are in Jira
+and many other task management solutions. The data structures and user
+interfaces should consider deeply nested subtasks as a primary
+use-case, and they should be just as easy to use and understand as
+top-level tasks.
+
+Nesting tasks provides a way of edifying the relationship between "Big
+Tasks" and "Small Tasks". Specifically, that Big Tasks are composed of
+increasingly smaller but more detailed, subtasks. This composition
+relationship is recursive, and the depth of the recursion depends
+entirely on the project, and, how the user prefers to decompose their
+work.
+
+*** Recursing Into Tasks in Task List
+
+One realization of this is in the UI, where tasks can be 'recursed'
+into. When this is done, the task list will be replaced with only
+subtasks of the task that was recursed into. The recursed task will be
+added to the context stack above the list, providing clear feedback to
+the user of "where they are" within the scope of the project. The
+context stack is a breadcrumb that explains to the users the
+high-level significance of the tasks that they are currently
+editing. It brings the "why" into the "what".
+
+Direct children of recursed task are listed in group at top of
+list. Indirect descendents are grouped together in a second set.
+
+*** Trees?
+
+? Should there be a "tree view" that shows all paths for a Big Task?
+Each path is a path through the tasks / through the requirements to
+completion. Finding this path of least resistance is the point of Wu
+Wei.
+
+? Should we force the composition to be acyclic?
+
+? Can tasks be subtasks of multiple parents?
+
+** Critical Path Analysis
+
+When a task and its subtasks have effort estimates, critical path
+analysis could be available. This can be shown as the longest sequence
+from current task to any leaf beneath it. The times of all other paths
+can also be calculated, and shown at the leaf nodes.
+
+? Doesn't this require :or, :any, :all, etc relationships between
+tasks to really work well? Seems messy. Need a UI solution for this.
+
+** Remove mental burden, help decide priorities & choose where to work
+
+Filter that shows all "unblocked leafs" for a Big Task. IE, here are
+the things you can do right now.
+
+Also filter to show all blocked leaves, and their blockers, for a Big
+Task.
+
+** Task Filtering, Sorting?
+
+Only mine, blocked, unblocked, etc
+
+Advanced filtering with EDN syntax [:and :blocked [:not :mine]]
+
+For recursive tasks, view only direct subtasks (or parents) or all
+generations, or up to a limit.
+
+Sort task subtask tree BFS and DFS? Only if not splitting them. Or
+maybe apply specifically to the indirect section/
+
+** Time tracking and effort estimates
+
+Use calendar to schedule chunks of work on tasks. Same UI to log work
+completed for time-tracking.
+
+Graphs to show effort, focus over time?
+
+** Due Dates, Milestones
+
+Use effort-estimate and due-date to show warnings to user when
+unstarted tasks are at risk of not completing. Use color, exclamation
+points to highlight these in the task list?
+
+Every task's due-date, start-date, etc is a milestone. You can use
+these to in cross-task dependencies to keep them aligned. IE, start
+task B when task A completes, regardless of when that is.
+
+Standalone milestones can be defined, used as values for
+due-dates. For example, Q2 Release Cycle cna be a top-level task
+created for milestones only. It can be decomposed into subtasks that
+depend on each others due-dates (implementation, integration, testing
+phases, for example). These milestones can then be used by other
+top-level tasks & their compositional subtasks.
+
+? Should milestone tasks use calendar time and not effort? How would that work?
+
+** History
+
+Git-based built-in history may be technically infeasible, but I do
+think the full revision history of all tasks and notes should be
+accessible.
+
+Tasks should be able to show who changed the status of the task, and
+on which date, for every status transition. This makes it
+auditable. It should also be able to show which changes were made to
+summary, description, and so one for each editing transaction.
+
+Beyond the task view, there could be a timeline view that allows users
+to see what they did each day. Marking particular edits, working on
+particular tasks, documenting certain projects, etc. Higher-level
+tools or features could use this to illustrate shifting focuses over
+time. This can be a useful tool in passively understanding how time
+was allocated in the past.
+
+** Export & Interop
+
+Export to both easily tooled formats (JSON, EDN) and human readable
+(HTML, org-mode, etc) are high priority.
+
+Import from other systems a nice to have (especially TickTick and
+org-mode, since I use them).
+
+External integrations (DAV, Google Calendar and similar) are lowest
+priority.
+
+** Extensibility
+
+TBD. Would like end-users to be able to customize their user interface
+with custom lisp without rebuilding the application (like init.el in
+emacs), but I am not sure how technically feasible this
+is. Clojurescript has some degree of self-hosting, but practicality
+will determine how we far we get with this.
+
+If nothing else, make complete and advanced configuration via EDN
+possible. Users can share fragments of their EDN config. Maybe permit
+things not possible with general UI.
+
+** Notebooks
+
+Notebooks separate like lists
+
+But content inside notebooks not paginated -- just decomposed by
+heading. Can click on a treeview menu to navigate, but still
+essentially all one "page". Rely on good recursion handling to make
+this not distracting or laborious.
+
+*** Today Page
+
+Each day gets their own page for "unsorted" content. This is like a
+capture system. Headings here can be "resorted" into more appropriate
+notebooks, just like in org mode.
+
+Navigate using small calendar in sidebar. Special since most notebooks
+navigate with tree menu.
+
+** Markup for task bodies and notes
+
+Do a subset of something reasonable, maybe Org. There's a nice
+analogue between Clojure metadata and Org property drawers that we can
+work with.
+
+*** Recursion in Notes
+Each "chunk" of text in a note should be a standalone thing under a
+heading. When scrolling, headings should maintain a context stack,
+just like the task list. Very similar to how functions etc are handled
+in vscode scrolling as well.
+
+? Heading font size, etc, could remain relative to whatever is
+in-view? IE a heading at indentation level 4 could appear like H1 if
+it is the most general heading shown.
+
+? Task bodies are "text blocks" just like headings within note books?
+
+? Are tasks a superset of text blocks? This could be powerful. Use
+case: When taking daily notes, use an inline command or key combo to
+convert heading to a task by adding a "status" property to the
+property drawer. Instantly makes it accessible to the task
+list. Basically, duck-type the difference between text blocks and
+tasks based on their 'metadata' having a status field? hmm
+
+*** Inline Commands
+
+Should work in notes similarly to in the task creation box, where it
+makes sense
+
+*** Linking between text blocks, tasks, etc
+
+Use some syntax for this.
+
+Each element will need a unique ID. Support "tagging" or labeling
+manually for easier reference? Or, generate meaningful unique tags by
+default based on context?
+
+** Habits and Recurring Tasks
+
+Some special case of the status field. Maybe different than normal
+tasks. Not sure yet but this is an important use case to get right.
+
+Need repetition history easily accessed and viewed.
+
+** Configurable things
+
+Task statuses (TODO, in progress, next, blocked, done, etc), colors for each status, and legal status transitions as an adjacency matrix?
+
+Mandatory task properties? assignee, effort, etc
+
+Settings that apply only to certain lists? Setting overrides per task? Setting overrides per task subtree? EDN data in the task drawer?
+
+** Other & Stretch
+
+Don't forget a dark mode
+
+Grep-like full-text real-time regex search across all content in the system.
+
+Able to add other resources (like PDFS?), index them for search, and
+link to them from notes/tasks.
+
+Multiuser support with collab editing for notes, tasks, assignment, etc.
+
+Maybe a "watch list" or shortcut list on the left back on the task view?
+
+A "today" view that collects things due soon or today? Or scheduled to be done today?
+
+A different "today" view where users can collect backlog items that they plan to do today?
+
+Template tasks?
+
+Template subtrees? Template project roadmaps?
+
+Grouping or organizing lists into folders?
+
+Mosaic view -- tasks and subtasks drawn recursively in nested frames. Area of each task proportional to its subtree effort. Like windirstat. Show text in each square.
+
+*** JIRA backend / interop?
+
+Lists are epics? Maybe?
