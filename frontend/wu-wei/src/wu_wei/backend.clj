@@ -85,7 +85,8 @@
          (let [body (-> (:body request)
                         slurp
                         read-string)]
-           (update-task body)))
+           (update-task body)
+           {:status 200}))
 
    (GET "/task/all" []
      {:headers {"Content-type" "text/edn"}

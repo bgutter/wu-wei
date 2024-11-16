@@ -11,15 +11,24 @@
 
 (def list-table (r/atom #{}))
 
-(def task-table (r/atom #{}))
+(def task-cache
+  "Mapping from int id to r/atom over a Task map.
+
+  This structure allows the UI to update when items are added to the
+  cache, or whenever individual task information is updated.
+
+  Example:
+  {...
+  4 (r/atom {:id 4 :summary \"stuff\"})
+  ...}"
+  (r/atom {}))
 
 (def selected-task-item-id (r/atom nil))
 (def task-list-selected-task-item-summary-edited (r/atom nil))
 
-(def context-stack (r/atom []))
-
-(defn task-by-id [id]
-  (first (clojure.set/select #(= (:id %) id) @task-table)))
+(def context-stack
+  "Vector of r/atom over Task maps"
+  (r/atom []))
 
 (defn select-list-id
   ""
@@ -46,7 +55,6 @@
             (apply cb [status nil]))))))
 
 (defn backend-patch [endpoint body callback]
-  (println body)
   (go (let [response (<! (http/patch (str "http://localhost:9500" endpoint)
                                      {:with-credentials? false
                                       :body (pr-str body)
@@ -60,23 +68,21 @@
 (defn update-task
   ""
   [task-update-map]
-  (println "Updating " task-update-map)
   (backend-patch "/task" task-update-map #())
   (refresh-tasks))
 
 (defn make-new-task-current-context [task-content]
   (let
       [completed-task         (merge {:list-id @selected-list-id} task-content)
-       parent-task            (last @context-stack)
+       parent-task            (some-> @context-stack last deref)
        parent-subtask-ids     (:subtask-ids parent-task)]
-    (println (str "MAKEW NEW TASK: " completed-task parent-task parent-subtask-ids))
     (backend-put "/task" completed-task
                  (fn callback [status body-edn]
-                   (println (str "Processing callback: " status body-edn))
                    (let
                        [updated-subtask-ids (conj parent-subtask-ids (:id body-edn))
                         updated-task        (merge parent-task {:subtask-ids updated-subtask-ids})]
-                     (update-task updated-task))))))
+                     (update-task updated-task))
+                   (refresh-tasks)))))
 
 (defn get-task [id callback]
   (backend-request (str "/task/by-id/" id) callback))
@@ -95,7 +101,17 @@
 (defn refresh-tasks
   ""
   []
-  (get-all-tasks #(reset! task-table %2)))
+  (get-all-tasks
+   (fn [code data]
+     (let
+         [new-ids        (clojure.set/difference (set (map :id data)) (set (keys @task-cache)))
+          new-task-atoms (into {} (for [new-id new-ids] [new-id (r/atom {})]))]
+       (swap! task-cache merge new-task-atoms))
+     (dorun
+      (for [task-data data]
+        (let [id (:id task-data)]
+          (if (not= (deref (get @task-cache id)) task-data)
+            (swap! (get @task-cache id) merge task-data))))))))
 
 (defn sync-task
   ""
@@ -143,8 +159,8 @@
 
 (defn recurse-into-task
   ""
-  [task]
-  (swap! context-stack conj task))
+  [task-atom]
+  (swap! context-stack conj task-atom))
 
 (defn reset-context []
   (reset! context-stack [])
@@ -176,13 +192,13 @@
          ])
       (doall
        (map-indexed
-        (fn [context-index t]
-          ^{:key (str "STACK:" (:id t))}
+        (fn [context-index ta]
+          ^{:key (str "STACK:" (:id (deref ta)))}
           [:div.ww-task-list-context-item
            {:on-click #(do
                          (reset! context-stack (subvec @context-stack 0 (inc context-index)))
                          (reset! selected-task-item-id nil))}
-           (str "⤵️ " (:summary t))])
+           (str "⤵️ " (:summary (deref ta)))])
         @context-stack))])])
 
 (defn task-creation-box
@@ -202,10 +218,11 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [t context]
+  [ta context]
   (let
-      [is-selected-item (= @selected-task-item-id (:id t))]
-    ^{:key (:id t)}
+      [t                (deref ta)
+       is-selected-item (= @selected-task-item-id (:id t))]
+    ^{:key (str "task-list-item:" (:id t))}
     [:div.ww-task-list-item
      {:id (:item-eid context)
       :class (if is-selected-item "ww-task-list-item--selected")}
@@ -258,37 +275,42 @@
          [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
        (if (seq (:subtask-ids t))
          [:div.ww-task-list-item-scheduling
-          {:on-click #(recurse-into-task t)}
+          {:on-click #(recurse-into-task ta)}
           "⤵️ Recurse"])
        (doall
         (for [subtask-id (:subtask-ids t)]
-          (let [subtask (task-by-id subtask-id)]
+          (let [subtask (deref (get @task-cache subtask-id))]
             [:div.ww-task-list-item-subtasks-blurb
              (str " ▢ " (:summary subtask))])))]]]))
 
 (defn task-list
   "Component showing task list."
   []
+  (let
+      [context-task-subtask-ids (some-> @context-stack last deref :subtask-ids)
+       all-task-atoms           (vals @task-cache)]
   [:div.ww-task-list
    [task-list-context-stack]
-   (when (seq @context-stack)
+   (when (some? context-task-subtask-ids)
      [:div.ww-task-list-context-separator
         "Direct Subtasks"])
    [task-creation-box]
    (when (and (seq @list-table) @selected-list-id)
      (let
-         [task-seq (if (seq @context-stack)
-                       ;; (map task-by-id (:subtask-ids (last @context-stack))))
-                       (filter #((:subtask-ids (last @context-stack)) (:id %)) @task-table)
-                       (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
-     (doall (for [t (sort-by #(* 1 (js/parseInt (:id %))) task-seq)]
-              (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
+         [task-atom-seq
+          ;; if there's context, seq over subtasks of the bottom item. Else, seq over all in list.
+          (if (some? context-task-subtask-ids)
+            (filter #(contains? context-task-subtask-ids (:id (deref %))) all-task-atoms)
+            (filter #(= (:list-id (deref %)) @selected-list-id) all-task-atoms))]
+     (doall (for [ta (sort-by #(* -1 (js/parseInt (:id (deref %)))) task-atom-seq)]
+              (let [t        (deref ta)
+                    make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
                     context  {:task                t
                               :item-eid            (make-eid "item")
                               :top-panel-eid       (make-eid "top-panel")
                               :summary-eid         (make-eid "summary")
                               :expansion-panel-eid (make-eid "expansion-panel")}]
-                [task-list-item t context])))))])
+                [task-list-item ta context])))))]))
 
 (defn controls-panel
   ""
