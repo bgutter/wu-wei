@@ -160,118 +160,135 @@
         task-item-element (js/document.getElementById (:item-eid ctx))]
     (flash-element summary-element))))
 
+(defn task-list-context-stack
+  "This is the stack of tasks that have been recursed into, shown at the
+  top of the task list."
+  []
+  [:div.ww-task-context-list
+   (when (seq @context-stack)
+     [:div
+      (let
+          [list (first (clojure.set/select #(= (:id %) @selected-list-id) @list-table))]
+        [:div.ww-task-list-context-item
+         {:on-click reset-context}
+         (:icon list)
+         (:name list)
+         ])
+      (doall
+       (map-indexed
+        (fn [context-index t]
+          ^{:key (str "STACK:" (:id t))}
+          [:div.ww-task-list-context-item
+           {:on-click #(do
+                         (reset! context-stack (subvec @context-stack 0 (inc context-index)))
+                         (reset! selected-task-item-id nil))}
+           (str "⤵️ " (:summary t))])
+        @context-stack))])])
+
+(defn task-creation-box
+  "This is the area where users can enter text and inline-actions for new tasks."
+  []
+  [:div.ww-task-creation-box
+   {:content-editable true
+    :data-ph (if (seq @context-stack) "New Subtask..." "New task...")
+    :on-key-down #(do
+                    (js/console.log "Pressed" (.-key %))
+                    (if (= (.-key %) "Enter")
+                      (do
+                        (make-new-task-current-context
+                         {:summary (.-textContent (.-target %))})
+                        (set! (-> % .-target .-textContent) "")
+                        (.preventDefault %))))}])
+
+(defn task-list-item
+  "An individual item within the task-list"
+  [t context]
+  (let
+      [is-selected-item (= @selected-task-item-id (:id t))]
+    ^{:key (:id t)}
+    [:div.ww-task-list-item
+     {:id (:item-eid context)
+      :class (if is-selected-item "ww-task-list-item--selected")}
+
+     [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
+      [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
+       "OPEN"]
+      (if (seq (:subtask-ids t))
+        [:div "⋮⋮⋮"])
+      [:div.ww-task-list-item-summary
+       {:id (:summary-eid context)
+        ;; User can edit these directly
+        :content-editable "true"
+        ;; when enter key pressed, lose focus
+        :on-key-down #(do
+                        (if (= (.-key %) "Enter")
+                          (.blur (.-target %))
+                          (reset! task-list-selected-task-item-summary-edited true)))
+        ;; when exiting focus, apply changes
+        :on-blur #(do
+                    (on-task-summary-edit-completed context)
+                    (update-task {:id (:id t) :summary (.-textContent (.-target %))})
+                    (reset! task-list-selected-task-item-summary-edited false)
+                    ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
+                    )}
+       (:summary t)]
+      [:div.ww-task-list-item-time-til-due (:id t)]]
+
+     [:div.ww-task-list-item-expansion-panel
+      {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
+
+      [:div.ww-task-list-item-body
+       {:content-editable "true"
+        :data-ph "Enter a description..."}]
+
+      [:div.ww-task-list-item-bottom-panel
+       [:div.ww-task-list-item-scheduling "Start: November 2nd"]
+       [:div.ww-task-list-item-scheduling "Due: November 11th"]
+       [:div.ww-task-list-item-scheduling "Owner: Samantha"]
+       [:div.ww-task-list-item-scheduling "Effort: 3D"]
+       (if (not (:subtask-ids t))
+         [:div.ww-task-list-item-scheduling "Add Subtask"])
+       [:div.ww-flexbox-spacer]]
+
+      (if (not (empty? (:subtask-ids t)))
+        [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
+
+      [:div.ww-task-list-item-subtasks-panel
+       (if (:subtask-ids t)
+         [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
+       (if (seq (:subtask-ids t))
+         [:div.ww-task-list-item-scheduling
+          {:on-click #(recurse-into-task t)}
+          "⤵️ Recurse"])
+       (doall
+        (for [subtask-id (:subtask-ids t)]
+          (let [subtask (task-by-id subtask-id)]
+            [:div.ww-task-list-item-subtasks-blurb
+             (str " ▢ " (:summary subtask))])))]]]))
+
 (defn task-list
   "Component showing task list."
   []
   [:div.ww-task-list
-   [:div.ww-task-context-list
-    (when (seq @context-stack)
-      [:div
-       (let
-           [list (first (clojure.set/select #(= (:id %) @selected-list-id) @list-table))]
-         [:div.ww-task-list-context-item
-          {:on-click reset-context}
-          (:icon list)
-          (:name list)
-          ])
-       (doall
-        (map-indexed
-         (fn [context-index t]
-           ^{:key (str "STACK:" (:id t))}
-           [:div.ww-task-list-context-item
-            {:on-click #(do
-                          (reset! context-stack (subvec @context-stack 0 (inc context-index)))
-                          (reset! selected-task-item-id nil))}
-            (str "⤵️ " (:summary t))])
-         @context-stack))
-       ])]
+   [task-list-context-stack]
    (when (seq @context-stack)
      [:div.ww-task-list-context-separator
         "Direct Subtasks"])
-   [:div.ww-task-creation-box
-    {:content-editable true
-     :data-ph (if (seq @context-stack) "New Subtask..." "New task...")
-     :on-key-down #(do
-                     (js/console.log "Pressed" (.-key %))
-                     (if (= (.-key %) "Enter")
-                       (do
-                         (make-new-task-current-context
-                          {:summary (.-textContent (.-target %))})
-                         (set! (-> % .-target .-textContent) "")
-                         (.preventDefault %))))}]
+   [task-creation-box]
    (when (and (seq @list-table) @selected-list-id)
      (let
          [task-seq (if (seq @context-stack)
-                     (map task-by-id (:subtask-ids (last @context-stack)))
-                     (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
+                       ;; (map task-by-id (:subtask-ids (last @context-stack))))
+                       (filter #((:subtask-ids (last @context-stack)) (:id %)) @task-table)
+                       (clojure.set/select #(= (:list-id %) @selected-list-id) @task-table))]
      (doall (for [t (sort-by #(* 1 (js/parseInt (:id %))) task-seq)]
-              (let [is-selected-item (= @selected-task-item-id (:id t))
-                    make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
+              (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
                     context  {:task                t
                               :item-eid            (make-eid "item")
                               :top-panel-eid       (make-eid "top-panel")
                               :summary-eid         (make-eid "summary")
                               :expansion-panel-eid (make-eid "expansion-panel")}]
-         ^{:key (:id t)}
-         [:div.ww-task-list-item
-          {:id (:item-eid context)
-           :class (if is-selected-item "ww-task-list-item--selected")}
-
-          [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
-           [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
-            "OPEN"]
-           (if (seq (:subtask-ids t))
-               [:div "⋮⋮⋮"])
-           [:div.ww-task-list-item-summary
-            {:id (:summary-eid context)
-             ;; User can edit these directly
-             :content-editable "true"
-             ;; when enter key pressed, lose focus
-             :on-key-down #(do
-                             (if (= (.-key %) "Enter")
-                               (.blur (.-target %))
-                               (reset! task-list-selected-task-item-summary-edited true)))
-             ;; when exiting focus, apply changes
-             :on-blur #(do
-                         (on-task-summary-edit-completed context)
-                         (update-task {:id (:id t) :summary (.-textContent (.-target %))})
-                         (reset! task-list-selected-task-item-summary-edited false)
-                         ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
-                         )
-             }
-            (:summary t)]
-           [:div.ww-task-list-item-time-til-due (:id t)]]
-
-           [:div.ww-task-list-item-expansion-panel
-            {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
-
-            [:div.ww-task-list-item-body
-             {:content-editable "true"
-              :data-ph "Enter a description..."}]
-
-            [:div.ww-task-list-item-bottom-panel
-             [:div.ww-task-list-item-scheduling "Start: November 2nd"]
-             [:div.ww-task-list-item-scheduling "Due: November 11th"]
-             [:div.ww-task-list-item-scheduling "Owner: Samantha"]
-             [:div.ww-task-list-item-scheduling "Effort: 3D"]
-             (if (not (:subtask-ids t)) [:div.ww-task-list-item-scheduling "Add Subtask"])
-             [:div.ww-flexbox-spacer]]
-
-            (if (not (empty? (:subtask-ids t)))
-              [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
-
-            [:div.ww-task-list-item-subtasks-panel
-             (if (:subtask-ids t)
-               [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
-             (if (seq (:subtask-ids t))
-               [:div.ww-task-list-item-scheduling
-                {:on-click #(recurse-into-task t)}
-                "⤵️ Recurse"])
-             (doall
-              (for [subtask-id (:subtask-ids t)]
-                (let [subtask (task-by-id subtask-id)]
-                  [:div.ww-task-list-item-subtasks-blurb
-                   (str " ▢ " (:summary subtask))])))]]])))))])
+                [task-list-item t context])))))])
 
 (defn controls-panel
   ""
