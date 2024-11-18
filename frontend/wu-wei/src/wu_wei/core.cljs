@@ -11,6 +11,8 @@
 
 (def list-table (r/atom #{}))
 
+(def active-perspective (r/atom :task-list))
+
 (def task-cache
   "Mapping from int id to r/atom over a Task map.
 
@@ -317,16 +319,139 @@
   []
   [:div.ww-controls-panel
    [:div "👤"]
+   ;; [:div.ww-flexbox-spacer]
+   [:div
+    {:on-click #(reset! active-perspective :notes)}
+    "🗒️"]
+   [:div
+    {:on-click #(reset! active-perspective :task-list)}
+     "☑️"]
    [:div.ww-flexbox-spacer]
    [:div "⚙️"]])
+
+(defn notes-menu
+  ""
+  []
+  [:div.ww-list-menu
+   ])
+
+;; (defn get-div-caret-pos
+;;   [div]
+;;   (.focus div)
+;;   (let
+;;       [range-a 
+;;        range-b (.cloneRange range-a)]
+;;     (println "RANGE A: " )
+;;     (.selectNodeContents range-b div)
+;;     (.setEnd range-b (.-endContainer range-a) (.-endOffset range-a))
+;;     (-> range-b .toString .-length)))
+(def note-cache (r/atom {0 {:id 0
+                           :summary ""
+                           :body ""
+                           :subnotes [1 3]}
+                         1 {:id 1
+                           :summary "This is a headline"
+                           :body "Some top-level text"
+                           :subnotes [2]}
+                         2 {:id 2
+                           :summary "This is a subheadline"
+                           :body "Some text under the second headline"
+                           :subnotes []}
+                         3 {:id 3
+                           :summary "Second headline at top level"
+                           :body ""
+                           :subnotes []}}))
+
+(defn scan-div-new-heading
+  [div]
+  (let
+      [range       (-> js/document .getSelection (.getRangeAt 0))
+       active-line (subs (.-wholeText (.-endContainer range)) 0 (.-endOffset range))]
+    (every? #(= % "*") active-line)))
+
+(defn pop-div-summary-body
+  [div]
+  (let [selection-range  (-> js/document .getSelection (.getRangeAt 0))
+        range-1          (let [rng (-> js/document (.createRange))]
+                           (-> rng (.setStartBefore (.-endContainer selection-range)))
+                           (-> rng (.setEndAfter (.-endContainer selection-range)))
+                           rng)
+        range-2          (let [rng (-> js/document (.createRange))]
+                           (-> rng (.setStartAfter (.-endContainer selection-range)))
+                           (-> rng (.setEndAfter div))
+                           rng)
+        summary-unparsed (-> range-1 (.extractContents) .-textContent)
+        summary-re-ret   (re-matches #"(\*+)\s*(.*)" summary-unparsed)
+        asterisks        (get summary-re-ret 1)
+        summary          (get summary-re-ret 2)
+        body             (-> range-2 (.extractContents) .-textContent)]
+    [asterisks summary body]))
+
+(defn note-node-body-region-key-down-handler
+  [event note]
+  (let
+      [key-pressed (.-key event)
+       div         (.-target event)
+       div-content (.-innerText div)]
+    (do
+      (case key-pressed
+        " " (if (scan-div-new-heading div)
+              (do
+                (let
+                    [[asterisks summary body] (pop-div-summary-body div)
+                     updated-body             div-content
+                     updated-note             (merge note
+                                                     {:body updated-body
+                                                     :subnotes 99})
+                     ]
+                  (reset! note-cache (assoc @note-cache
+                                            (:id updated-note) updated-note
+                                            99 {:id 99 :summary summary :body body :subnotes []}))
+                  (println "ASTERISKS: " asterisks)
+                  (println "NEW SUMMARY: " summary)
+                  (println "NEW BODY: " body)
+                  (.preventDefault event)
+                  ;; Add new note node
+                  ;; prepend it as a subnote to the parent of this note
+                  ;; Remove clipped content from current note
+                  )))
+        nil))))
+
+(defn note-node [id]
+  (let
+      [note (get @note-cache id)]
+    [:div.ww-note-node
+     [:div.ww-note-node-indent-region "•"]
+     [:div.ww-note-node-content-region
+      [:div.ww-note-node-summary-region
+       {:content-editable true}
+       (:summary note)]
+      [:div.ww-note-node-body-region
+       {:content-editable true
+        :on-key-down #(note-node-body-region-key-down-handler % note)}
+       (:body note)]
+     (doall (for [child-id (:subnotes note)]
+       [note-node child-id]))]]))
+
+(defn notes-view
+  ""
+  []
+  [:div.ww-notes-view
+   [note-node 0]])
 
 (defn app
   "Main Application Component"
   []
   [:div.ww-app-body
-   [list-menu]
-   [task-list]
-   [controls-panel]])
+   [controls-panel]
+   [:div.ww-perspective-area
+    (case @active-perspective
+      :task-list [:div.ww-task-list-perspective
+                  [list-menu]
+                  [task-list]]
+      :notes     [:div.ww-notes-perspective
+                  [notes-menu]
+                  [notes-view]])]])
 
 (rd/render [app] (.-body js/document))
 (refresh-lists)

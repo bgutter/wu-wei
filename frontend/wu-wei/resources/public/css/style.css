@@ -16,6 +16,62 @@ html, body {
     overflow: hidden;
 }
 
+.ww-perspective-area {
+    display: flex;
+    width: 100%;
+}
+
+.ww-task-list-perspective {
+    display: flex;
+    flex-direction: columns;
+    width: 100%;
+}
+
+.ww-notes-perspective {
+    display: flex;
+    flex-direction: columns;
+    width: 100%;
+    height: 100%;
+}
+
+.ww-notes-view {
+    width: 100%;
+    height: 100%;
+    font-size: 0.8em;
+}
+
+.ww-note-node {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 1em;
+    border-left: solid 2px lightgray;
+    margin: 2px;
+}
+
+.ww-note-node-content-region {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.ww-note-node-indent-region {
+    /* background: lightgray; */
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+.ww-note-node-summary-region {
+    /* background: lightblue; */
+    font-weight: bold;
+    outline: solid 0px transparent;
+}
+
+.ww-note-node-body-region {
+    margin-bottom: 10px;
+    outline: solid 0px transparent;
+}
+
 .ww-task-creation-box {
     background: lightgray;
     border-radius: 5px;
@@ -290,6 +346,8 @@ html, body {
     height: 100%;
     background: rgb( 240,240,240);
     border: solid 1px lightgray;
+    min-width: 200px;
+    width: 20vw;
     /* box-shadow: 5px 0px 10px lightgray; */
     /* position: relative; */
     /* z-index: 10; */
@@ -341,7 +399,7 @@ html, body {
     flex-direction: column;
     align-items: center;
     background: rgb(240,240,240);
-    width: 10vw;
+    width: 3em;
     box-shadow: -5px 0px 5px lightgray;
     font-size: 2em;
 }
