@@ -101,6 +101,12 @@ Plan, Do, Document
 
 Tasks are created, organized, and edited here.
 
+**** Expand a task to full-screen
+
+Use a bottom-left / top-right square icon?
+
+Floating over main content? Start showing a lot of advanced features here.
+
 *** Calendar & Time Tracking
 
 Work for tasks is scheduled, deadlines illustrated, and effort-spent
@@ -295,6 +301,19 @@ tasks based on their 'metadata' having a status field? hmm
 Should work in notes similarly to in the task creation box, where it
 makes sense
 
+Example: /+task:Go to the store/ adds a task and leaves no trace in
+the original text
+
+But with $ in place of /, will leave a link: $+task:Go to the store$
+performs action and self-replaces with link syntax to the new task.
+
+command ideas:
+- +task: create a task
+- task: link to a task interactively
+- schedule: schedule task being edited
+- assign: assign task to new owner
+- refile: move to new location
+
 *** Linking between text blocks, tasks, etc
 
 Use some syntax for this.
@@ -318,6 +337,20 @@ Mandatory task properties? assignee, effort, etc
 
 Settings that apply only to certain lists? Setting overrides per task? Setting overrides per task subtree? EDN data in the task drawer?
 
+** Kanban view?
+
+Transition status (or other field?) of tasks/entities via a column view
+
+** Split UIs
+
+*** Desktop
+
+Can move/restruture via click and drag on handle on tasks or nodes (alt to move subtree?)
+
+*** Touch
+
+How to move tasks? Clipboard?
+
 ** Other & Stretch
 
 Don't forget a dark mode
@@ -329,7 +362,7 @@ link to them from notes/tasks.
 
 Multiuser support with collab editing for notes, tasks, assignment, etc.
 
-Maybe a "watch list" or shortcut list on the left back on the task view?
+Maybe a "watch list" or shortcut / bookmark list on the left back on the task view?
 
 A "today" view that collects things due soon or today? Or scheduled to be done today?
 
@@ -343,6 +376,167 @@ Grouping or organizing lists into folders?
 
 Mosaic view -- tasks and subtasks drawn recursively in nested frames. Area of each task proportional to its subtree effort. Like windirstat. Show text in each square.
 
+Integration of a screencap tool
+
+Browser bookmarks, maybe via browser extension?
+
+Is time since assigment (or, time assigned to user/resource) a useful thing to show?
+
+Allow entities to be 'tagged' with canonical names for easier reference / permalinks?
+
 *** JIRA backend / interop?
 
 Lists are epics? Maybe?
+
+* Competitor Analysis / Breakdown
+
+Let's make sure I understand how others are solving these problems before reinventing the wheel.
+
+For each, cover:
+- ideology
+- scope (tasks, notes, roadmapping, time tracking, habits, etc)
+- architecture (server/client, single machine?)
+- team-oriented, individual only, or both?
+- user interface
+- features
+- weaknesses
+- data storage (flat file? database?)
+- FOSS?
+
+Classes of Competition
+- PKMS (Notion, obsidian)
+- Kanban (Trello)
+- Roadmapping
+- Pomodoro / Time Trackers / Time blocking / Focus Helpers
+- Habit / "clickers" / Routine management
+
+** org-mode in emacs
+
+The absolute GOAT. Supports everything. Infinitely extensible.
+
+*** Unique Strengths
+
+The text is the canonical data.
+
+org-babel
+
+*** Weaknesses
+
+The text is the canonical data. It's painful to develop for org-mode
+(IMO) because you constantly have to parse text, and hope there are
+existing parse functions for most of what you want to do. And
+org-syntax is notoriously not easy to parse correctly (unless you
+accept a subset of the markup). You /can/ extend org to do anything,
+but, that doesn't mean you'll want to.
+
+If you don't have /your/ laptop in front of you, org is essentially
+useless. Yes, there's Orgzly, but it is a far cry from the real
+thing. It's also keyboard or nothing. God help the man using org-mode
+on a tablet.
+
+it gets slow quickly with large org file directories. My org-agenda
+took 2-3 minutes to refresh after just a couple years of use. And
+yeah, maybe I could be better about tidying things up, but I did not
+have enough content that a modern task management software should
+already be choking.
+
+Single-user / single machine. Having all data in human-readable flat
+files makes file syncing and version control very doable with external
+tools though. I've had luck syncing my org directory with Seafile, and
+reving it with Git.
+
+** TickTick
+
+Nothing special but it "Just Works" extremely well. Great example of a
+solution that makes itself compelling by limiting its scope as much as
+possible, without becoming useless.
+
+** Todoist
+
+** Clickup
+
+** Asana
+
+** Jira + Structure, etc
+
+** Everdo
+
+** Notion
+
+** Lotus Notes
+
+** Yoodoo
+
+** Task Warrior
+
+** Timebloc
+
+** Wrike
+
+** Microsoft TODO
+
+** Google Keep
+
+** Monday.com
+
+** Google Tasks
+
+** Any.do
+
+** Trello
+
+** Zoho
+
+** Roam
+
+** Evernote
+
+** Obsidian
+
+** Joplin
+
+** Zim
+
+** Capacities
+
+** Hypernotes
+
+** Logseq
+
+*Wow* -- I had not heard of this before doing this 'competitor
+analysis'. Logseq hits very close to the mark.
+
+*** Initial Impressions
+
+It's interesting, seems very powerful. Discoverability is a little
+low. Had to google to see all "open" todo tasks (graph view -> LATER).
+
+I wonder if the graph view becomes an incomprehensible mess after a
+few years?
+
+*** Strengths
+
+org-like note taking syntax and extensions (#+BEGIN_ etc)
+
+Graph-like relationship between entities, just as is planned for
+Wu-Wei
+
+Supports plugins/extensions
+
+It's /even written in Clojure/
+
+*** Weaknesses
+
+Single-user. Local only (though it can sync with
+extensions?). Mutliuser is coming as a paid feature.
+
+Not sure of mobile apps / Touch UI
+
+Appears that task management is an ancillary feature, but extensions
+could build upon this.
+
+** OneNote
+
+Objectively sucks for managing tasks and is mediocre at best at being
+a shared knowledgebase. But it does work for both, speaking from
+unfortunate personal experience.
