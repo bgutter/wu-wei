@@ -262,7 +262,7 @@ heading. Can click on a treeview menu to navigate, but still
 essentially all one "page". Rely on good recursion handling to make
 this not distracting or laborious.
 
-*** Today Page
+*** Today Page / Journal
 
 Each day gets their own page for "unsorted" content. This is like a
 capture system. Headings here can be "resorted" into more appropriate
@@ -270,6 +270,12 @@ notebooks, just like in org mode.
 
 Navigate using small calendar in sidebar. Special since most notebooks
 navigate with tree menu.
+
+idea: Can the journal page automatically aggregate all changes made
+anywhere in the system on that day? Maybe this aggregation can be
+"irrevocable" or canonical, and the journal is the key mechanism that
+prevents orphaned blocks? IE all content not in journal is just a
+'reference' to the content in journal?
 
 ** Markup for task bodies and notes
 
@@ -341,11 +347,14 @@ Settings that apply only to certain lists? Setting overrides per task? Setting o
 
 Transition status (or other field?) of tasks/entities via a column view
 
-** Split UIs
+** Split User Interfaces
 
 *** Desktop
 
 Can move/restruture via click and drag on handle on tasks or nodes (alt to move subtree?)
+
+Should support multiple view panes with arbitrary content? Allow
+agenda & notes side by side? What about floating windows?
 
 *** Touch
 
@@ -383,6 +392,10 @@ Browser bookmarks, maybe via browser extension?
 Is time since assigment (or, time assigned to user/resource) a useful thing to show?
 
 Allow entities to be 'tagged' with canonical names for easier reference / permalinks?
+
+Built-in browser feels excessive (and difficult with browser-based client due to CORS -- but proxy through server could work, and, enable a 'free' VPN?). But what about a dedicated Wikipedia client?
+
+Of course, an LLM
 
 *** JIRA backend / interop?
 
@@ -499,12 +512,23 @@ possible, without becoming useless.
 
 ** Capacities
 
+The object system is very unique and seems very close to how I'd like
+to handle notes vs tasks vs other resources in Wu-Wei. I need to learn
+more about how types work in Capacities.
+
 ** Hypernotes
 
 ** Logseq
 
 *Wow* -- I had not heard of this before doing this 'competitor
-analysis'. Logseq hits very close to the mark.
+analysis'. Logseq hits very close to the mark in terms of
+implementation details.
+
+*** Overview
+
+Primarily an outlining app. Each chunk of text is a block. Blocks can
+be bidirectionally linked throughout the application. There's a graph
+view of all blocks and links.
 
 *** Initial Impressions
 
@@ -512,7 +536,13 @@ It's interesting, seems very powerful. Discoverability is a little
 low. Had to google to see all "open" todo tasks (graph view -> LATER).
 
 I wonder if the graph view becomes an incomprehensible mess after a
-few years?
+few years? -- update: have seen feedback that the graph view is not as
+useful so much as it is neat to look at.
+
+One thing I notice and like is that it uses daily journal pages by
+default. This is how I have configured my org-mode to work, and it is
+very effective. Extensions for tasking and capture slap new headings
+in here, just like org does.
 
 *** Strengths
 
@@ -530,13 +560,119 @@ It's /even written in Clojure/
 Single-user. Local only (though it can sync with
 extensions?). Mutliuser is coming as a paid feature.
 
-Not sure of mobile apps / Touch UI
+Not sure of mobile apps / Touch UI. People seem to feel that the
+mobile apps are second class citizens, not well liked.
 
 Appears that task management is an ancillary feature, but extensions
 could build upon this.
+
+*** Tasking
+
+Tasks are sort of bolted-on, with statuses being blocks themselves
+that appear in the graph. This might feel academically satisfying to
+someone but I don't understand how it is practical. Extensions may
+improve the experience here.
+
+*** Data Storage
+
+local-first with a sync service
+
+Stores data locally as markdown or org-mode files, though apparently
+there's also "graph DB (SIC)" that might be backed by a SQL (sqlite?)
+database somehow. There's also a "DB version" in development that will
+support collaborative editing. Unclear on details here, need to sit
+down and focus on this.
+
+*** Revisioning
+
+Uses git under the hood, appears to be packaged with it. Advanced
+settings permit autocommits, etc. Snazzy.
+
+*** Markup
+
+"#thing", "[[thing] ]" and "#[[thing] ]" are all the same, except in
+how they appear. At least in Markdown files. Clicking one opens a new
+page by that name. Not actually created til content added.
+
+*** Media
+
+Can attach files, including audio/video/image and PDF. PDFs
+specifically can be viewed and annotated within the application. This
+is a killer feature.
+
+*** User Interface
+
+Minimalist, maybe too much so. Definitely goes for the "blank canvas"
+vibe. Does support dual-pane. Has a menu bar. Extensions can add more
+elements (tabs, etc).
+
+When the cursor is placed in a block, it is unrendered and raw
+markdown is shown. Rendered markdown is shown when focus exits the
+block. This might be why new blocks are created with every line break.
+
+*** Other
+
+I like how hovering over links shows a preview of the linked page.
+
+I like how pages have a 'references' section at the bottom, with
+/timestamped/ events.
+
+Tags for headings are inherited from parent headings, as they are in
+org-mode. I haven't always found this behavior to be sensible in my
+org-mode workflows but I understand why it makes some sense.
+
+One of my issues with org is that the text-file based data store is
+very slow to process. Logseq appears to have this issue too to some
+degree -- videos on Youtube show quite long startup times for the app
+when users have a lot of content.
+
+Blocks have UUIDs for linking -- and there are a lot of blocks, since
+each new-line generates one by default. Would prefer Wu-Wei to be more
+like org-mode, where headings are only created with intentional
+asterisks.
+
+Massive plugin ecosystem.
+
+Pretty buggy. Frequently found that I could not edit blocks. CSS
+editor doesn't work either.
 
 ** OneNote
 
 Objectively sucks for managing tasks and is mediocre at best at being
 a shared knowledgebase. But it does work for both, speaking from
 unfortunate personal experience.
+
+** Outline
+
+** SiYuan
+
+A rare self-hosted open source option. Looks actually pretty
+promising.
+
+** Craft App
+
+** coda.io
+
+Lots of integrations?
+
+** Draft
+
+** Amplenote
+
+** Athens
+
+Dead but this was in Clojure too
+
+** Miro
+
+** Airtable
+
+** Dendron
+
+** Affine.pro
+
+** Quip
+
+** Remote
+
+** BookStack
