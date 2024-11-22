@@ -387,12 +387,26 @@
         body             (-> range-2 (.extractContents) .-textContent)]
     [asterisks summary body]))
 
+(defn read-div-text
+  "textContent and innerText both fail to convert <br> to \n in Firefox
+  so just DIY it."
+  [div ]
+  (let
+      [tokens (doall (for [child (.-children div)]
+                       (do
+                         (println child)
+                         (case (.-tagName child)
+                           "br" "\n"
+                           "div" (.-textContent div)
+                           ""))))]
+    (apply str tokens)))
+
 (defn note-node-body-region-key-down-handler
   [event note]
   (let
       [key-pressed (.-key event)
        div         (.-target event)
-       div-content (.-innerText div)]
+       div-content (read-div-text div)]
     (do
       (case key-pressed
         " " (if (scan-div-new-heading div)
