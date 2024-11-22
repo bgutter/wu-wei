@@ -418,9 +418,9 @@
                                                      {:body updated-body
                                                      :subnotes 99})
                      ]
-                  (reset! note-cache (assoc @note-cache
-                                            (:id updated-note) updated-note
-                                            99 {:id 99 :summary summary :body body :subnotes []}))
+                  (reset! note-cache (merge @note-cache
+                                            {(:id updated-note) updated-note
+                                             99 {:id 99 :summary summary :body body :subnotes []}}))
                   (println "ASTERISKS: " asterisks)
                   (println "NEW SUMMARY: " summary)
                   (println "NEW BODY: " body)
