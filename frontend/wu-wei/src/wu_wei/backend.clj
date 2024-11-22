@@ -1,105 +1,97 @@
 (ns wu-wei.backend
   (:require
-   [compojure.core :refer [defroutes GET PATCH PUT]]
+   [compojure.core :refer [defroutes GET PATCH PUT POST]]
    [compojure.coercions :refer [as-int]]
    [compojure.route :as route]
-   [clojure.data.json :as json]))
+   [clojure.data.json :as json]
+   [wu-wei.entities :as entities]))
 
-(def app-data-path (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
+(def entity-table
+  "Atom containing a map of entity-id to entity."
+  (atom {}))
 
-(declare list-table task-table)
-(defn write-all-data
-  "Dump all backend state to `app-data-path'."
-  []
-  (with-open [wr (clojure.java.io/writer app-data-path)]
-    (.write wr
-     (with-out-str
-       (clojure.pprint/pprint
-        {:list-table list-table
-         :task-table @task-table})))))
+(add-watch entity-table
+           :update-disk-for-entity-table
+           (fn [key atom old-state new-state]
+             (let [edn-data (with-out-str (clojure.pprint/pprint new-state))]
+               (with-open [writer (clojure.java.io/writer app-data-path)]
+                 (-> writer (.write edn-data))))))
 
-(defn read-all-data
+(def app-data-path
+  "Where entity data will be stored as an EDN.
+  This will be deprecated soon -- we're going to graduate to a database eventually."
+  (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
+
+(defn read-entities-from-disk
   "Load all backend state from `app-data-path'"
   []
   (let
-      [{lists :list-table tasks :task-table} (clojure.edn/read-string (slurp app-data-path))]
-    (def list-table lists)
-    (def task-table (atom tasks))))
+      [entities (clojure.edn/read-string (slurp app-data-path))]
+    (reset! entity-table entities)))
 
 ;; Read all app data before continuing
-(read-all-data)
-
-(defn task-by-id
-  "Get task matching ID."
-  [id]
-  (first (clojure.set/select #(= (:id %) id) @task-table)))
+(read-entities-from-disk)
 
 (defn next-free-id []
-  (inc (apply max (filter some? (map :id @task-table)))))
+  (inc (apply max (filter some? (keys @entity-table)))))
 
-(defn update-task
+(defn entity-by-id
+  "Get entity matching ID."
+  [id]
+  (get @entity-table id))
+
+(defn update-entity
   "Update fields for a given task.
   Task partial data must include :id."
-  [task-partial]
+  [partial-entity]
   (let
-      [id (:id task-partial)
-       orig-task (task-by-id id)
-       new-task (merge orig-task task-partial)
-       dropped-table (remove #(= (:id %) id) @task-table)
-       updated-table (set (conj dropped-table new-task))]
-    (reset! task-table updated-table)
-    (println "Updating task " orig-task " to " new-task " -- " updated-table)
-    (write-all-data)))
+      [id (:id partial-entity)
+       orig-entity (entity-by-id id)
+       updated-entity (merge orig-entity partial-entity)]
+    (swap! entity-table assoc id updated-entity)))
 
-(defn create-task
+(defn create-entity
   "Slap an :id in here and add it to the table."
-  [task-partial]
+  [partial-entity]
   (let
-      [id            (next-free-id)
-       new-task      (assoc task-partial :id id)
-       updated-table (set (conj @task-table new-task))]
-    (reset! task-table updated-table)
-    (println "Added new task " new-task)
-    new-task))
+      [id         (next-free-id)
+       new-entity (assoc partial-entity :id id)]
+    (swap! entity-table assoc id new-entity)
+    new-entity))
+
+(defn edn-from-request
+  "Parse a request body as EDN data."
+  [request]
+  (-> (:body request) slurp read-string))
+
+(defn edn-response
+  "Create a Response with an EDN body payload."
+  [status-code response]
+  {:headers {"Content-type" "text/edn"}
+   :status  status-code
+   :body    (pr-str response)})
 
 (defroutes handler
 
-   (GET "/test" []
-     {:status 200
-      :body "Ring has been tested"})
+  (PUT "/entity" request
+    (let [new-entity (edn-from-request request)]
+      (edn-response 200 (create-entity new-entity))))
 
-  (PUT "/task" request
-       (let [body (-> (:body request)
-                        slurp
-                        read-string)]
-         (let [new-task (create-task body)]
-           {:headers {"Content-type" "text/edn"}
-            :status  200
-            :body    (pr-str new-task)})))
+  (POST "/entity" request
+    (let [new-entity (edn-from-request request)]
+      (edn-response 200 (create-entity new-entity))))
 
-   (GET "/task/by-id/:id" [id :<< as-int]
-     {:headers {"Content-type" "text/edn"}
-      :status  200
-      :body    (pr-str (task-by-id id))})
+  (GET "/entity/:id" [id :<< as-int]
+     (edn-response 200 (entity-by-id id)))
 
-  (PATCH "/task" request
-         (let [body (-> (:body request)
-                        slurp
-                        read-string)]
-           (update-task body)
-           {:status 200}))
+  (PATCH "/entity" request
+    (let [updated-entity (edn-from-request request)]
+      (edn-response 200 (update-entity updated-entity))))
 
-   (GET "/task/all" []
-     {:headers {"Content-type" "text/edn"}
-      :status  200
-      :body    (pr-str @task-table)})
+  (GET "/task/all" []
+    (edn-response 200 (filter entities/task? @entity-table)))
 
-   (GET "/list/all" []
-     {:headers {"Content-type" "text/edn"}
-      :status  200
-      :body    (pr-str list-table)})
-
-   (route/not-found
-    {:status 404
-     :body "<h1>Page not found</h1>"}))
+  (route/not-found
+   {:status 404
+    :body "<h1>Page not found</h1>"}))
 
