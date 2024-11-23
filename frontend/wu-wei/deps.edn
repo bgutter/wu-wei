@@ -5,4 +5,4 @@
         com.bhauman/figwheel-main {:mvn/version "0.2.18"}
         cljs-http/cljs-http {:mvn/version "0.1.48"}
         compojure/compojure {:mvn/version "1.7.1"}}
- :paths ["src" "target" "resources"]}
+ :paths ["src" "target" "resources" "test"]}

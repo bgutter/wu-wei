@@ -73,23 +73,42 @@
 
 (defroutes handler
 
-  (PUT "/entity" request
-    (let [new-entity (edn-from-request request)]
-      (edn-response 200 (create-entity new-entity))))
-
-  (POST "/entity" request
-    (let [new-entity (edn-from-request request)]
-      (edn-response 200 (create-entity new-entity))))
+  ;; Getting Entities
+  ;; GET /entity/id
+  ;;     Body: None
+  ;;     Response: EDN data describing the entity
+  ;; POST /search-entities with predicate vector as EDN in body
 
   (GET "/entity/:id" [id :<< as-int]
      (edn-response 200 (entity-by-id id)))
 
+  (POST "/search-entities" request
+     (let [search-params (edn-from-request request)]
+       (edn-response 200 (filter entities/task? @entity-table))))
+
+  ;; Creating and editing entities
+  ;; PUT or POST /entitiy
+  ;;     Body: EDN representation of a NEW entity.
+  ;;           Should have no :id property.
+  ;;     Response: id of created entity.
+  ;; PATCH /entity
+  ;;     Body: EDN representation of a MODIFIED entity
+  ;;           Must have a valid :id property
+  ;;     Response: Nothing.
+
+  (PUT "/entity" request
+    (let [new-entity (edn-from-request request)]
+      (edn-response 200 (:id (create-entity new-entity)))))
+
+  (POST "/entity" request
+    (let [new-entity (edn-from-request request)]
+      (edn-response 200 (:id (create-entity new-entity)))))
+
   (PATCH "/entity" request
     (let [updated-entity (edn-from-request request)]
-      (edn-response 200 (update-entity updated-entity))))
-
-  (GET "/task/all" []
-    (edn-response 200 (filter entities/task? @entity-table)))
+      (edn-response 200 (do
+                          (update-entity updated-entity)
+                          nil))))
 
   (route/not-found
    {:status 404
