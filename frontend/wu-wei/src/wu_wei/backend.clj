@@ -48,6 +48,7 @@
       [id (:id partial-entity)
        orig-entity (entity-by-id id)
        updated-entity (merge orig-entity partial-entity)]
+    (println "!!! Backend updating " partial-entity)
     (swap! entity-table assoc id updated-entity)))
 
 (defn create-entity
@@ -59,6 +60,16 @@
     (swap! entity-table assoc id new-entity)
     new-entity))
 
+(defn filter-entities
+  ""
+  [query-forms]
+  (let [match-fn (entities/compile-query query-forms)]
+    (filter #(match-fn (second %)) @entity-table)))
+
+;;
+;; Request Processing
+;;
+
 (defn edn-from-request
   "Parse a request body as EDN data."
   [request]
@@ -67,9 +78,12 @@
 (defn edn-response
   "Create a Response with an EDN body payload."
   [status-code response]
-  {:headers {"Content-type" "text/edn"}
-   :status  status-code
-   :body    (pr-str response)})
+  (let
+      [response-data (pr-str response)]
+    (println (str "backend -> frontend: '" response-data  "'"))
+    {:headers {"Content-type" "text/edn"}
+     :status  status-code
+     :body    response-data}))
 
 (defroutes handler
 
@@ -83,8 +97,10 @@
      (edn-response 200 (entity-by-id id)))
 
   (POST "/search-entities" request
-     (let [search-params (edn-from-request request)]
-       (edn-response 200 (filter entities/task? @entity-table))))
+     (let [query-forms (edn-from-request request)]
+       (let
+           [ids-matching-query (into [] (map #(:id (second %)) (filter-entities query-forms)))]
+         (edn-response 200 ids-matching-query))))
 
   ;; Creating and editing entities
   ;; PUT or POST /entitiy

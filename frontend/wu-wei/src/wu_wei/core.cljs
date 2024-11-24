@@ -8,118 +8,130 @@
             [clojure.edn :as edn]
             [wu-wei.entities :as entities]))
 
+;;
+;; Backend Requests
+;;
+
+(defn backend-address
+  "Generate a path on the server, assumed to be the same location that served the frontend.
+
+  TODO: Should be using SSL if this is ever exposed to the internet."
+  [path]
+  (str "http://" (.-hostname js/location) ":" (.-port js/location) path))
+
+(defn backend-request
+  "Send an HTTP request to the backend, given a verb, endpoint, body EDN, and callback."
+  [verb endpoint body callback]
+  (println (str "frontend -> backend: '" endpoint "' '" body "'"))
+  (go (let [response (<! (verb (backend-address endpoint)
+                                   {:with-credentials? false
+                                    :body (pr-str body)
+                                    :headers {"Content-type" "text/edn"}}))]
+        (let [status (:status response)]
+          (if (= status 200)
+            (apply callback [status (edn/read-string (:body response))])
+            (apply callback [status nil]))))))
+
+(defn backend-put
+  "PUT on the backend -- given an endpoint, EDN body, and a callback."
+  [endpoint body cb]
+  (backend-request http/put endpoint body cb))
+
+(defn backend-post
+  "POST on the backend -- given an endpoint, EDN body, and a callback."
+  [endpoint body cb]
+  (backend-request http/post endpoint body cb))
+
+(defn backend-get
+  "GET on the backend -- given an endpoint and a callback."
+  [endpoint cb]
+  (backend-request http/get endpoint nil cb))
+
+(defn backend-patch
+  "PATCH on the backend -- given an endpoint, EDN body, and a callback."
+  [endpoint body cb]
+  (backend-request http/patch endpoint body cb))
+
+;;
+;; Entity Caching & Retrieval
+;;
+
+(def entity-cache
+  "Atom containing a mapping from entity ID to cached entity data."
+  (r/atom {}))
+
+(defn fetch-entity
+  "Retrieve data for this entity ID from backend.
+
+  Updates `entity-cache` asynchronously -- does not return a value."
+  [id]
+  (backend-get
+   (str "/entity/" id)
+   (fn [status-code entity-data]
+     (if (= status-code 200)
+       (swap! entity-cache assoc id entity-data)))))
+
+(defn fetch-all-entities
+  "Retrieve data for all entities from backend.
+
+  Updates `entity-cache` asynchronously -- does not return a value."
+  []
+  (backend-post
+   "/search-entities"
+   :true ;; Matches all entities
+   (fn [status-code entity-ids]
+     (if (= status-code 200)
+       (dorun
+        (for [id entity-ids]
+          (fetch-entity id)))))))
+
+(defn query-entities
+  "Find all entities matching a query form."
+  [query-forms]
+  (let
+      [matcher (entities/compile-query query-forms)]
+    (filter #(matcher (second %)) @entity-cache)))
+
+;;
+;; UI
+;;
+
+;; TODO GOALS
 (def selected-list-id (r/atom 1))
+
+(def context-stack       (r/atom []))
 
 (def list-table (r/atom #{}))
 
 (def active-perspective (r/atom :task-list))
 
-(def task-cache
-  "Mapping from int id to r/atom over a Task map.
-
-  This structure allows the UI to update when items are added to the
-  cache, or whenever individual task information is updated.
-
-  Example:
-  {...
-  4 (r/atom {:id 4 :summary \"stuff\"})
-  ...}"
-  (r/atom {}))
-
 (def selected-task-item-id (r/atom nil))
 (def task-list-selected-task-item-summary-edited (r/atom nil))
-
-(def context-stack
-  "Vector of r/atom over Task maps"
-  (r/atom []))
 
 (defn select-list-id
   ""
   [id]
   (reset! selected-list-id id))
 
-(defn backend-put [endpoint body cb]
-  (go (let [response (<! (http/put (str "http://localhost:9500" endpoint)
-                                   {:with-credentials? false
-                                    :body (pr-str body)
-                                    :headers {"Content-type" "text/edn"}}))]
-        (let [status (:status response)]
-          (if (= status 200)
-            (apply cb [status (edn/read-string (:body response))])
-            (apply cb [status nil]))))))
 
-(defn backend-request [endpoint cb]
-  (go (let [response (<! (http/get (str "http://localhost:9500" endpoint)
-                                   {:with-credentials? false
-                                    :query-params {"since" 135}}))]
-        (let [status (:status response)]
-          (if (= status 200)
-            (apply cb [status (edn/read-string (:body response))])
-            (apply cb [status nil]))))))
-
-(defn backend-patch [endpoint body callback]
-  (go (let [response (<! (http/patch (str "http://localhost:9500" endpoint)
-                                     {:with-credentials? false
-                                      :body (pr-str body)
-                                      :headers {"Content-type" "text/edn"}}))]
-        (let [status (:status response)]
-          (if (= status 200)
-            (apply callback [status (edn/read-string (:body response))])
-            (apply callback [status nil]))))))
-
-(declare refresh-tasks)
 (defn update-task
   ""
   [task-update-map]
-  (backend-patch "/task" task-update-map #())
-  (refresh-tasks))
+  (backend-patch "/entity" task-update-map #())
+  (fetch-all-entities))
 
 (defn make-new-task-current-context [task-content]
   (let
       [completed-task         (merge {:list-id @selected-list-id} task-content)
        parent-task            (some-> @context-stack last deref)
        parent-subtask-ids     (:subtask-ids parent-task)]
-    (backend-put "/task" completed-task
+    (backend-put "/entity" completed-task
                  (fn callback [status body-edn]
                    (let
                        [updated-subtask-ids (conj parent-subtask-ids (:id body-edn))
                         updated-task        (merge parent-task {:subtask-ids updated-subtask-ids})]
                      (update-task updated-task))
-                   (refresh-tasks)))))
-
-(defn get-task [id callback]
-  (backend-request (str "/task/by-id/" id) callback))
-
-(defn get-lists [callback]
-  (backend-request "/list/all" callback))
-
-(defn get-all-tasks [callback]
-  (backend-request "/task/all" callback))
-
-(defn refresh-lists
-  ""
-  []
-  (get-lists #(reset! list-table %2)))
-
-(defn refresh-tasks
-  ""
-  []
-  (get-all-tasks
-   (fn [code data]
-     (let
-         [new-ids        (clojure.set/difference (set (map :id data)) (set (keys @task-cache)))
-          new-task-atoms (into {} (for [new-id new-ids] [new-id (r/atom {})]))]
-       (swap! task-cache merge new-task-atoms))
-     (dorun
-      (for [task-data data]
-        (let [id (:id task-data)]
-          (if (not= (deref (get @task-cache id)) task-data)
-            (swap! (get @task-cache id) merge task-data))))))))
-
-(defn sync-task
-  ""
-  [task]
-  (backend-patch "/task" task #()))
+                   (fetch-all-entities)))))
 
 (defn list-menu-entry
   ""
@@ -136,7 +148,7 @@
   ""
   []
   [:div.ww-list-menu-section
-   [:div.ww-list-menu-section-title "Lists"]
+   [:div.ww-list-menu-section-title "Goals"]
    (for [list @list-table]
      [list-menu-entry list])])
 
@@ -162,8 +174,8 @@
 
 (defn recurse-into-task
   ""
-  [task-atom]
-  (swap! context-stack conj task-atom))
+  [task]
+  (swap! context-stack conj task))
 
 (defn reset-context []
   (reset! context-stack [])
@@ -182,7 +194,7 @@
 (defn task-list-context-stack
   "This is the stack of tasks that have been recursed into, shown at the
   top of the task list."
-  []
+  [context-stack]
   [:div.ww-task-context-list
    (when (seq @context-stack)
      [:div
@@ -221,11 +233,12 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [ta context]
+  [t context]
+  (println t)
   (let
-      [t                (deref ta)
-       is-selected-item (= @selected-task-item-id (:id t))]
-    ^{:key (str "task-list-item:" (:id t))}
+      [selected-task-id @selected-task-item-id
+       is-selected-item (and selected-task-item-id (= selected-task-id (:id t)))]
+    ^{:key (:id t)}
     [:div.ww-task-list-item
      {:id (:item-eid context)
       :class (if is-selected-item "ww-task-list-item--selected")}
@@ -278,11 +291,11 @@
          [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
        (if (seq (:subtask-ids t))
          [:div.ww-task-list-item-scheduling
-          {:on-click #(recurse-into-task ta)}
+          {:on-click #(recurse-into-task t)}
           "⤵️ Recurse"])
        (doall
         (for [subtask-id (:subtask-ids t)]
-          (let [subtask (deref (get @task-cache subtask-id))]
+          (let [subtask (deref (get @entity-cache subtask-id))]
             [:div.ww-task-list-item-subtasks-blurb
              (str " ▢ " (:summary subtask))])))]]]))
 
@@ -290,30 +303,27 @@
   "Component showing task list."
   []
   (let
-      [context-task-subtask-ids (some-> @context-stack last deref :subtask-ids)
-       all-task-atoms           (vals @task-cache)]
+      [context-stack-items @context-stack
+       recursed-into-task  (seq context-stack-items)
+       task-query-forms    (cond
+                            recursed-into-task [:subtask-of (:id (last @context-stack))]
+                            (not (nil? @selected-list-id)) :task? ;; TODO
+                            :default :task?)
+       tasks            (query-entities task-query-forms)]
   [:div.ww-task-list
-   [task-list-context-stack]
-   (when (some? context-task-subtask-ids)
+   [task-list-context-stack context-stack]
+   (when recursed-into-task
      [:div.ww-task-list-context-separator
         "Direct Subtasks"])
    [task-creation-box]
-   (when (and (seq @list-table) @selected-list-id)
-     (let
-         [task-atom-seq
-          ;; if there's context, seq over subtasks of the bottom item. Else, seq over all in list.
-          (if (some? context-task-subtask-ids)
-            (filter #(contains? context-task-subtask-ids (:id (deref %))) all-task-atoms)
-            (filter #(= (:list-id (deref %)) @selected-list-id) all-task-atoms))]
-     (doall (for [ta (sort-by #(* -1 (js/parseInt (:id (deref %)))) task-atom-seq)]
-              (let [t        (deref ta)
-                    make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
-                    context  {:task                t
-                              :item-eid            (make-eid "item")
-                              :top-panel-eid       (make-eid "top-panel")
-                              :summary-eid         (make-eid "summary")
-                              :expansion-panel-eid (make-eid "expansion-panel")}]
-                [task-list-item ta context])))))]))
+   (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) (map second tasks))]
+            (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
+                  context  {:task                t
+                            :item-eid            (make-eid "item")
+                            :top-panel-eid       (make-eid "top-panel")
+                            :summary-eid         (make-eid "summary")
+                            :expansion-panel-eid (make-eid "expansion-panel")}]
+              [task-list-item t context])))]))
 
 (defn controls-panel
   ""
@@ -395,7 +405,6 @@
   (let
       [tokens (doall (for [child (.-children div)]
                        (do
-                         (println child)
                          (case (.-tagName child)
                            "br" "\n"
                            "div" (.-textContent div)
@@ -422,9 +431,6 @@
                   (reset! note-cache (merge @note-cache
                                             {(:id updated-note) updated-note
                                              99 {:id 99 :summary summary :body body :subnotes []}}))
-                  (println "ASTERISKS: " asterisks)
-                  (println "NEW SUMMARY: " summary)
-                  (println "NEW BODY: " body)
                   (.preventDefault event)
                   ;; Add new note node
                   ;; prepend it as a subnote to the parent of this note
@@ -469,5 +475,5 @@
                   [notes-view]])]])
 
 (rd/render [app] (.-body js/document))
-(refresh-lists)
-(refresh-tasks)
+
+(fetch-all-entities)

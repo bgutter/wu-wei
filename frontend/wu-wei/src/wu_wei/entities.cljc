@@ -32,6 +32,9 @@
 ;; Time APIs
 ;;
 
+;; TODO: Replace with real functions that can parse relative times,
+;; like "+2d" or "3w4h"
+
 (defn current-time
   "Get the current time as UTC seconds."
   []
@@ -100,6 +103,8 @@
       Is the entity a task with a due date that is after DATE?
   - [:due-between? A B]
       Is the entity a task with a due date between A and B?
+  - [:occurs-before? DATE]
+      Is the entity an event with a start-time before DATE?
 
   Supported Logical Groupings
   ===========================
@@ -121,6 +126,7 @@
   (let
       [parse-error              (fn [msg] (throw (ex-info msg)))
        always-false             (fn [& _] false)
+       always-true              (fn [& _] true)
        require-all-recursions   (fn [ent args]
                                   (every? identity (map (fn [func] (func ent))
                                                         (map compile-query args))))
@@ -129,10 +135,12 @@
                                                       (map compile-query args))))
        check-occur-before       (fn [ent args] (apply event-occurs-before? ent args))
        keyword-predicate-map    {:task? #'task?
-                                 :event? #'event?}
+                                 :event? #'event?
+                                 :true always-true
+                                 :false always-false}
        expression-predicate-map {:and require-all-recursions
                                  :or require-any-recursion
-                                 :occurs-before check-occur-before}]
+                                 :occurs-before? check-occur-before}]
     (fn apply-filter [entity]
       (cond
         (keyword? query-forms)

@@ -44,8 +44,8 @@
         (is (not (task-or-event-matcher a-nothing)))))
     (testing "event time filters"
       (let
-          [event-before-2014-matcher (compile-query [:occurs-before (time-from-str "2014-1-1")])
-           event-before-2016-matcher  (compile-query [:occurs-before (time-from-str "2016-1-1")])]
+          [event-before-2014-matcher (compile-query [:occurs-before? (time-from-str "2014-1-1")])
+           event-before-2016-matcher  (compile-query [:occurs-before? (time-from-str "2016-1-1")])]
         (is (not (event-before-2014-matcher an-event-in-2015)))
         (is (event-before-2016-matcher an-event-in-2015))))))
 
