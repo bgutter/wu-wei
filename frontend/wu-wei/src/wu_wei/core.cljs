@@ -5,7 +5,8 @@
             [reagent.dom :as rd]
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [wu-wei.entities :as entities]))
 
 (def selected-list-id (r/atom 1))
 
