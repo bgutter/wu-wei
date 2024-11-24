@@ -4,29 +4,38 @@
    [clojure.spec.test.alpha :as st]
    [clojure.set :refer [subset?]]))
 
+;;
+;; Entity Classes
+;;
+
 (defn entity?
   "Predicate for whether an object qualifies as an entity."
   [maybe-entity]
-  (:id maybe-entity))
+  (boolean (:id maybe-entity)))
 
 (defn task?
   "Predicate for whether an entity can function as a task."
   [entity]
-  (and
-   (entity? entity)
-   (subset? #{:status :summary} (set (keys entity)))))
+  (boolean (and
+            (entity? entity)
+            (subset? #{:status :summary} (set (keys entity))))))
 
 (defn event?
   "Predicate for whether an entity can function as an event."
   [entity]
-  (and
-   (entity? entity)
-   (subset? #{:start-time} (set (keys entity)))))
+  (boolean
+   (and
+    (entity? entity)
+    (subset? #{:start-time} (set (keys entity))))))
 
-(defn compile-entity-filter
-  "Produce a function that determines whether an entity matches the given entity filter, `filter-vec`.
+;;
+;; Entity Queries
+;;
 
-  `filter-vec` should be either a keyword, or a vector of nested
+(defn compile-query
+  "Produce a function that determines whether an entity matches the given entity filter, `query-forms`.
+
+  `query-forms` should be either a keyword, or a vector of nested
   vectors and keywords. There are three classes of keywords that are
   recognized:
 
@@ -67,14 +76,10 @@
 
   Supported Logical Groupings
   ===========================
-  - [:all ...]
-      Matches only if all following expressions match
   - [:and ...]
-      Same as :all
-  - [:any ...]
-      Matches if any of the following expressions match
+      Matches only if all following expressions match
   - [:or ...]
-      Same as :any
+      Matches if any of the following expressions match
 
   Supported Dependency Projections
   ================================
@@ -85,25 +90,34 @@
       Matches if *all* of the following expressions match *any* of the
       dependencies of a task
   "
-  [filter-vec]
+  [query-forms]
   (let
       [parse-error              (fn [msg] (throw (ex-info msg)))
-       always-false             (fn [_] false)
+       always-false             (fn [& _] false)
+       require-all-recursions   (fn [ent args]
+                                  (every? identity (map (fn [func] (func ent))
+                                                        (map compile-query args))))
+       require-any-recursion    (fn [ent args]
+                                  (some identity (map (fn [func] (func ent))
+                                                      (map compile-query args))))
        keyword-predicate-map    {:task? #'task?
                                  :event? #'event?}
-       expression-predicate-map {:and (fn [ent args]
-                                        (every? identity (map (fn [func] (func ent))
-                                                     (map compile-entity-filter args))))}]
+       expression-predicate-map {:and require-all-recursions
+                                 :or require-any-recursion}]
     (fn apply-filter [entity]
       (cond
-        (keyword? filter-vec)
-          ((get keyword-predicate-map filter-vec always-false) entity)
-        (and (vector? filter-vec) (keyword? (first filter-vec)))
-          ((get expression-predicate-map (first filter-vec) always-false) entity (rest filter-vec))
+        (keyword? query-forms)
+          ((get keyword-predicate-map query-forms always-false) entity)
+        (and (vector? query-forms) (keyword? (first query-forms)))
+          ((get expression-predicate-map (first query-forms) always-false) entity (rest query-forms))
         :default
-          (parse-error (format "Illegal entity filter: %s" filter-vec))))))
+          (parse-error (format "Illegal entity filter: %s" query-forms))))))
 
-;; TODO spec, disable in prod
+;;
+;; Specs
+;;
+
+;; TODO disable in prod
 
 (s/def ::entity
   (s/and map? (s/every-kv keyword? any?)))
