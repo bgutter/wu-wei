@@ -79,6 +79,22 @@
    (task? task-b)
    (contains? (:subtask-ids task-b) (:id task-a))))
 
+(defn downstream-tasks
+  "A set of all tasks which are subtasks (direct or indirect) of `task`."
+  [task entity-dict]
+  (let [direct-subtask-ids (:subtask-ids task)
+        direct-subtasks    (map #(get entity-dict %) direct-subtask-ids)
+        recursion-results  (map #(downstream-tasks % entity-dict) direct-subtasks)]
+    (set (apply concat direct-subtasks recursion-results))))
+
+;; (defn upstream-tasks
+;;   "Get all tasks for which "
+;;   [task]
+;;   )
+
+;; (defn milestones-upstream-of-task
+  ;; [])
+
 ;;
 ;; Entity Queries
 ;;

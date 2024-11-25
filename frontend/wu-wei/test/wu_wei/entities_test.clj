@@ -23,7 +23,17 @@
     (is (subtask? {:id 1 :status :open :summary ""}
                   {:id 2 :status :open :summary "" :subtask-ids #{1}}))
     (is (not (subtask? {:id 2 :status :open :summary "" :subtask-ids #{1}}
-                       {:id 1 :status :open :summary ""})))))
+                       {:id 1 :status :open :summary ""}))))
+  (testing "downstream-tasks"
+    (let
+        [task-dict {0 {:id 0 :status :open :summary "A"}
+                    1 {:id 1 :status :open :summary "B" :subtask-ids #{0}}
+                    2 {:id 2 :status :open :summary "C" :subtask-ids #{1}}
+                    3 {:id 3 :status :open :summary "D" :subtask-ids #{2 4}}
+                    4 {:id 4 :status :open :summary "E"}
+                    5 {:id 5 :status :open :summary "F"}}]
+      (is (= (into #{} (map #(get task-dict %) [0 1 2 4]))
+             (downstream-tasks (get task-dict 3) task-dict))))))
 
 (deftest test--compile-query
   "Test the `wu-wei.entities/compile-query` function."
