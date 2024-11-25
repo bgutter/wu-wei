@@ -149,6 +149,7 @@
   []
   [:div.ww-list-menu-section
    [:div.ww-list-menu-section-title "Goals"]
+   [list-menu-entry { :name "Inbox" :icon "📥" }]
    (for [list @list-table]
      [list-menu-entry list])])
 

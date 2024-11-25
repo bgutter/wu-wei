@@ -12,6 +12,8 @@
     (is (task? {:status "OPEN" :summary "None" :id 1}))
     (is (not (task? {:summary "" :id 1})))
     (is (not (task? {:status ""}))))
+  (testing "milestone?"
+    (is (milestone? {:id 1 :status :open :milestone true :summary ""})))
   (testing "event?"
     (is (not (event? {})))))
 
@@ -29,21 +31,26 @@
       [entities               {1 {:id 1 :summary "Some Task" :status :open}
                                2 {:id 2 :summary "Another one" :start-time (time-from-str "2015-1-1")}
                                3 {:id 3 :summary "Important meeting" :status :open :start-time (time-from-str "2024-7-1")}
-                               4 {:id 4 :summary "Do some stuff" :status :open :subtask-ids #{1 3}}}
+                               4 {:id 4 :summary "Do some stuff" :status :open :subtask-ids #{1 3}}
+                               5 {:id 5 :summary "My Milestone" :status :open :subtask-ids #{4} :milestone true}}
        lookup-entity-fn       (partial get entities)
        a-nothing              {}
        an-open-task           (lookup-entity-fn 1)
        an-event-in-2015       (lookup-entity-fn 2)
        a-task-and-event       (lookup-entity-fn 3)
-       parent-task-of-1-and-3 (lookup-entity-fn 4)]
+       parent-task-of-1-and-3 (lookup-entity-fn 4)
+       a-milestone            (lookup-entity-fn 5)]
     (testing "basic predicates"
       (let
           [task-matcher  (compile-query :task? lookup-entity-fn)
-           event-matcher (compile-query :event? lookup-entity-fn)]
+           event-matcher (compile-query :event? lookup-entity-fn)
+           milestone-matcher (compile-query :milestone? lookup-entity-fn)]
         (is (task-matcher an-open-task))
         (is (not (task-matcher a-nothing)))
         (is (not (event-matcher an-open-task)))
-        (is (event-matcher an-event-in-2015))))
+        (is (event-matcher an-event-in-2015))
+        (is (milestone-matcher a-milestone))
+        (is (not (milestone-matcher an-event-in-2015)))))
     (testing "logical groupings"
       (let
           [task-and-event-matcher (compile-query [:and :task? :event?] lookup-entity-fn)

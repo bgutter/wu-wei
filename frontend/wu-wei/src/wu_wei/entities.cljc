@@ -20,6 +20,12 @@
             (entity? entity)
             (subset? #{:status :summary} (set (keys entity))))))
 
+(defn milestone?
+  "Predicate for whether an entity can function as a milestone."
+  [entity]
+  (boolean (and (task? entity)
+                (contains? entity :milestone))))
+
 (def task-defaults {:status :open :summary ""})
 
 (defn event?
@@ -152,6 +158,7 @@
        check-is-subtask-of      (fn [ent args] (subtask? ent (lookup-entity-fn (first args))))
        keyword-predicate-map    {:task? #'task?
                                  :event? #'event?
+                                 :milestone? #'milestone?
                                  :true always-true
                                  :false always-false}
        expression-predicate-map {:and require-all-recursions
