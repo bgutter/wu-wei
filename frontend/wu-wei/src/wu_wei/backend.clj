@@ -32,6 +32,10 @@
 ;; Read all app data before continuing
 (read-entities-from-disk)
 
+(defn entity-by-id
+  [id]
+  (get @entity-table id))
+
 (defn next-free-id []
   (inc (apply max (filter some? (keys @entity-table)))))
 
@@ -63,7 +67,7 @@
 (defn filter-entities
   ""
   [query-forms]
-  (let [match-fn (entities/compile-query query-forms)]
+  (let [match-fn (entities/compile-query query-forms entity-by-id)]
     (filter #(match-fn (second %)) @entity-table)))
 
 ;;

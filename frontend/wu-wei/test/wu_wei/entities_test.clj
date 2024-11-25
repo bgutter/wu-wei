@@ -15,25 +15,39 @@
   (testing "event?"
     (is (not (event? {})))))
 
+(deftest test--task-apis
+  "Test basic functions for working with tasks."
+  (testing "subtask?"
+    (is (subtask? {:id 1 :status :open :summary ""}
+                  {:id 2 :status :open :summary "" :subtask-ids #{1}}))
+    (is (not (subtask? {:id 2 :status :open :summary "" :subtask-ids #{1}}
+                       {:id 1 :status :open :summary ""})))))
+
 (deftest test--compile-query
   "Test the `wu-wei.entities/compile-query` function."
   (let
-      [a-nothing        {}
-       an-open-task     {:id 1 :summary "Some Task" :status :open}
-       an-event-in-2015 {:id 2 :summary "Another one" :start-time (time-from-str "2015-1-1")}
-       a-task-and-event {:id 3 :summary "Important meeting" :status :open :start-time (time-from-str "2024-7-1")}]
+      [entities               {1 {:id 1 :summary "Some Task" :status :open}
+                               2 {:id 2 :summary "Another one" :start-time (time-from-str "2015-1-1")}
+                               3 {:id 3 :summary "Important meeting" :status :open :start-time (time-from-str "2024-7-1")}
+                               4 {:id 4 :summary "Do some stuff" :status :open :subtask-ids #{1 3}}}
+       lookup-entity-fn       (partial get entities)
+       a-nothing              {}
+       an-open-task           (lookup-entity-fn 1)
+       an-event-in-2015       (lookup-entity-fn 2)
+       a-task-and-event       (lookup-entity-fn 3)
+       parent-task-of-1-and-3 (lookup-entity-fn 4)]
     (testing "basic predicates"
       (let
-          [task-matcher  (compile-query :task?)
-           event-matcher (compile-query :event?)]
+          [task-matcher  (compile-query :task? lookup-entity-fn)
+           event-matcher (compile-query :event? lookup-entity-fn)]
         (is (task-matcher an-open-task))
         (is (not (task-matcher a-nothing)))
         (is (not (event-matcher an-open-task)))
         (is (event-matcher an-event-in-2015))))
     (testing "logical groupings"
       (let
-          [task-and-event-matcher (compile-query [:and :task? :event?])
-           task-or-event-matcher  (compile-query [:or :task? :event?])]
+          [task-and-event-matcher (compile-query [:and :task? :event?] lookup-entity-fn)
+           task-or-event-matcher  (compile-query [:or :task? :event?] lookup-entity-fn)]
         (is (task-and-event-matcher a-task-and-event))
         (is (not (task-and-event-matcher an-open-task)))
         (is (not (task-and-event-matcher an-event-in-2015)))
@@ -44,10 +58,16 @@
         (is (not (task-or-event-matcher a-nothing)))))
     (testing "event time filters"
       (let
-          [event-before-2014-matcher (compile-query [:occurs-before? (time-from-str "2014-1-1")])
-           event-before-2016-matcher  (compile-query [:occurs-before? (time-from-str "2016-1-1")])]
+          [event-before-2014-matcher (compile-query [:occurs-before? (time-from-str "2014-1-1")] lookup-entity-fn)
+           event-before-2016-matcher  (compile-query [:occurs-before? (time-from-str "2016-1-1")] lookup-entity-fn)]
         (is (not (event-before-2014-matcher an-event-in-2015)))
-        (is (event-before-2016-matcher an-event-in-2015))))))
+        (is (event-before-2016-matcher an-event-in-2015))))
+    (testing "ascendents and descendents"
+      (let
+          [subtask-of-4-matcher (compile-query [:subtask-of? 4] lookup-entity-fn)]
+        (is (subtask-of-4-matcher an-open-task))
+        (is (subtask-of-4-matcher a-task-and-event))
+        (is (not (subtask-of-4-matcher parent-task-of-1-and-3)))))))
 
 #_
     (testing "grouped predicate sequences"

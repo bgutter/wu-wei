@@ -89,7 +89,7 @@
   "Find all entities matching a query form."
   [query-forms]
   (let
-      [matcher (entities/compile-query query-forms)]
+      [matcher (entities/compile-query query-forms #(get @entity-cache %))]
     (filter #(matcher (second %)) @entity-cache)))
 
 ;;
@@ -123,7 +123,7 @@
 (defn make-new-task-current-context [task-content]
   (let
       [completed-task         (merge {:list-id @selected-list-id} task-content)
-       parent-task            (some-> @context-stack last deref)
+       parent-task            (some-> @context-stack last)
        parent-subtask-ids     (:subtask-ids parent-task)]
     (backend-put "/entity" completed-task
                  (fn callback [status body-edn]
@@ -207,13 +207,13 @@
          ])
       (doall
        (map-indexed
-        (fn [context-index ta]
-          ^{:key (str "STACK:" (:id (deref ta)))}
+        (fn [context-index task]
+          ^{:key (str "STACK:" (:id task))}
           [:div.ww-task-list-context-item
            {:on-click #(do
                          (reset! context-stack (subvec @context-stack 0 (inc context-index)))
                          (reset! selected-task-item-id nil))}
-           (str "⤵️ " (:summary (deref ta)))])
+           (str "⤵️ " (:summary task))])
         @context-stack))])])
 
 (defn task-creation-box
@@ -295,7 +295,7 @@
           "⤵️ Recurse"])
        (doall
         (for [subtask-id (:subtask-ids t)]
-          (let [subtask (deref (get @entity-cache subtask-id))]
+          (let [subtask (get @entity-cache subtask-id)]
             [:div.ww-task-list-item-subtasks-blurb
              (str " ▢ " (:summary subtask))])))]]]))
 
@@ -306,10 +306,12 @@
       [context-stack-items @context-stack
        recursed-into-task  (seq context-stack-items)
        task-query-forms    (cond
-                            recursed-into-task [:subtask-of (:id (last @context-stack))]
+                            recursed-into-task [:subtask-of? (:id (last context-stack-items))]
                             (not (nil? @selected-list-id)) :task? ;; TODO
                             :default :task?)
        tasks            (query-entities task-query-forms)]
+    (println (str "Showing all tasks that match " task-query-forms))
+    (println tasks)
   [:div.ww-task-list
    [task-list-context-stack context-stack]
    (when recursed-into-task

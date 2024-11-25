@@ -58,6 +58,19 @@
   [event datetime]
   (< (:start-time event) datetime))
 
+
+;;
+;; Task Objects
+;;
+
+(defn subtask?
+  "Is first task a subtask of the other?"
+  [task-a task-b]
+  (and
+   (task? task-a)
+   (task? task-b)
+   (contains? (:subtask-ids task-b) (:id task-a))))
+
 ;;
 ;; Entity Queries
 ;;
@@ -122,25 +135,27 @@
       Matches if *all* of the following expressions match *any* of the
       dependencies of a task
   "
-  [query-forms]
+  [query-forms lookup-entity-fn]
   (let
       [parse-error              (fn [msg] (throw (ex-info msg)))
        always-false             (fn [& _] false)
        always-true              (fn [& _] true)
        require-all-recursions   (fn [ent args]
                                   (every? identity (map (fn [func] (func ent))
-                                                        (map compile-query args))))
+                                                        (map #(compile-query % lookup-entity-fn) args))))
        require-any-recursion    (fn [ent args]
                                   (some identity (map (fn [func] (func ent))
-                                                      (map compile-query args))))
+                                                      (map #(compile-query % lookup-entity-fn) args))))
        check-occur-before       (fn [ent args] (apply event-occurs-before? ent args))
+       check-is-subtask-of      (fn [ent args] (subtask? ent (lookup-entity-fn (first args))))
        keyword-predicate-map    {:task? #'task?
                                  :event? #'event?
                                  :true always-true
                                  :false always-false}
        expression-predicate-map {:and require-all-recursions
                                  :or require-any-recursion
-                                 :occurs-before? check-occur-before}]
+                                 :occurs-before? check-occur-before
+                                 :subtask-of? check-is-subtask-of}]
     (fn apply-filter [entity]
       (cond
         (keyword? query-forms)
@@ -154,13 +169,13 @@
 ;; Specs
 ;;
 
-;; TODO disable in prod
+;; ;; TODO disable in prod
 
-(s/def ::entity
-  (s/and map? (s/every-kv keyword? any?)))
+;; (s/def ::entity
+;;   (s/and map? (s/every-kv keyword? any?)))
 
-(s/fdef task?
-  :args (s/cat :entity ::entity)
-  :ret boolean?)
+;; (s/fdef task?
+;;   :args (s/cat :entity ::entity)
+;;   :ret boolean?)
 
-(st/instrument `task?)
+;; (st/instrument `task?)
