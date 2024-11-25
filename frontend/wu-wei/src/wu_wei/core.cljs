@@ -117,21 +117,21 @@
 (defn update-task
   ""
   [task-update-map]
-  (backend-patch "/entity" task-update-map #())
-  (fetch-all-entities))
+  (backend-patch "/entity" task-update-map #(fetch-all-entities)))
 
 (defn make-new-task-current-context [task-content]
   (let
-      [completed-task         (merge {:list-id @selected-list-id} task-content)
+      [completed-task         (merge entities/task-defaults {:list-id @selected-list-id} task-content)
        parent-task            (some-> @context-stack last)
+       parent-task-id         (:id parent-task)
        parent-subtask-ids     (:subtask-ids parent-task)]
     (backend-put "/entity" completed-task
-                 (fn callback [status body-edn]
+                 (fn callback [status new-id]
                    (let
-                       [updated-subtask-ids (conj parent-subtask-ids (:id body-edn))
+                       [parent-task         (get @entity-cache parent-task-id)
+                        updated-subtask-ids (conj (or (:subtask-ids parent-task) #{}) new-id)
                         updated-task        (merge parent-task {:subtask-ids updated-subtask-ids})]
-                     (update-task updated-task))
-                   (fetch-all-entities)))))
+                     (update-task updated-task))))))
 
 (defn list-menu-entry
   ""
@@ -289,10 +289,10 @@
       [:div.ww-task-list-item-subtasks-panel
        (if (:subtask-ids t)
          [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
-       (if (seq (:subtask-ids t))
+       ;; (if (seq (:subtask-ids t))
          [:div.ww-task-list-item-scheduling
           {:on-click #(recurse-into-task t)}
-          "⤵️ Recurse"])
+          "⤵️ Recurse"]
        (doall
         (for [subtask-id (:subtask-ids t)]
           (let [subtask (get @entity-cache subtask-id)]

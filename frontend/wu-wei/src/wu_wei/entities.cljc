@@ -20,6 +20,8 @@
             (entity? entity)
             (subset? #{:status :summary} (set (keys entity))))))
 
+(def task-defaults {:status :open :summary ""})
+
 (defn event?
   "Predicate for whether an entity can function as an event."
   [entity]
