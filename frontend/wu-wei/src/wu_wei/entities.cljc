@@ -175,6 +175,7 @@
        keyword-predicate-map    {:task? #'task?
                                  :event? #'event?
                                  :milestone? #'milestone?
+                                 ;; :part-of-milestone? #(boolean (seq (milestones-upstream-of-task (lookup-entity-fn %))))
                                  :true always-true
                                  :false always-false}
        expression-predicate-map {:and require-all-recursions

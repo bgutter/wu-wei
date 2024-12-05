@@ -10,17 +10,17 @@
   "Atom containing a map of entity-id to entity."
   (atom {}))
 
+(def app-data-path
+  "Where entity data will be stored as an EDN.
+  This will be deprecated soon -- we're going to graduate to a database eventually."
+  (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
+
 (add-watch entity-table
            :update-disk-for-entity-table
            (fn [key atom old-state new-state]
              (let [edn-data (with-out-str (clojure.pprint/pprint new-state))]
                (with-open [writer (clojure.java.io/writer app-data-path)]
                  (-> writer (.write edn-data))))))
-
-(def app-data-path
-  "Where entity data will be stored as an EDN.
-  This will be deprecated soon -- we're going to graduate to a database eventually."
-  (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
 
 (defn read-entities-from-disk
   "Load all backend state from `app-data-path'"

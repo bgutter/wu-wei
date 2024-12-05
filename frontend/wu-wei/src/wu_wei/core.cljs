@@ -6,7 +6,8 @@
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]
             [clojure.edn :as edn]
-            [wu-wei.entities :as entities]))
+            [wu-wei.entities :as entities]
+            [cljsjs.react-flip-move]))
 
 ;;
 ;; Backend Requests
@@ -90,7 +91,7 @@
   [query-forms]
   (let
       [matcher (entities/compile-query query-forms #(get @entity-cache %))]
-    (filter #(matcher (second %)) @entity-cache)))
+    (filter matcher (map second @entity-cache))))
 
 ;;
 ;; UI
@@ -135,23 +136,24 @@
 
 (defn list-menu-entry
   ""
-  [list]
+  [milestone]
+  (println milestone)
   [:div.ww-list-menu-entry
-   {:class (if (= @selected-list-id (:id list)) "ww-list-menu-entry--selected" "")
-    :on-click #(select-list-id (:id list))}
-   [:p.ww-list-menu-entry-icon (:icon list)]
-   [:p.ww-list-menu-entry-title (:name list)]
+   {:class (if (= @selected-list-id (:id milestone)) "ww-list-menu-entry--selected" "")
+    :on-click #(select-list-id (:id milestone))}
+   [:p.ww-list-menu-entry-icon (or (:icon milestone) "X")]
+   [:p.ww-list-menu-entry-title (:summary milestone)]
    [:p.ww-flexbox-spacer]
-   [:p.ww-list-menu-entry-count (:id list)]])
+   [:p.ww-list-menu-entry-count (:id milestone)]])
 
 (defn list-menu-lists-section
   ""
   []
   [:div.ww-list-menu-section
    [:div.ww-list-menu-section-title "Goals"]
-   [list-menu-entry { :name "Inbox" :icon "📥" }]
-   (for [list @list-table]
-     [list-menu-entry list])])
+   [list-menu-entry { :summary "Inbox" :icon "📥" }]
+   (for [milestone (query-entities :milestone?)]
+     [list-menu-entry milestone])])
 
 (defn list-menu-filters-section
   ""
@@ -235,7 +237,6 @@
 (defn task-list-item
   "An individual item within the task-list"
   [t context]
-  (println t)
   (let
       [selected-task-id @selected-task-item-id
        is-selected-item (and selected-task-item-id (= selected-task-id (:id t)))]
@@ -311,22 +312,22 @@
                             (not (nil? @selected-list-id)) :task? ;; TODO
                             :default :task?)
        tasks            (query-entities task-query-forms)]
-    (println (str "Showing all tasks that match " task-query-forms))
-    (println tasks)
   [:div.ww-task-list
    [task-list-context-stack context-stack]
    (when recursed-into-task
      [:div.ww-task-list-context-separator
         "Direct Subtasks"])
    [task-creation-box]
-   (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) (map second tasks))]
-            (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
-                  context  {:task                t
-                            :item-eid            (make-eid "item")
-                            :top-panel-eid       (make-eid "top-panel")
-                            :summary-eid         (make-eid "summary")
-                            :expansion-panel-eid (make-eid "expansion-panel")}]
-              [task-list-item t context])))]))
+   [(r/adapt-react-class js/FlipMove)
+    (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) tasks)]
+             (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
+                   context  {:task                t
+                             :item-eid            (make-eid "item")
+                             :top-panel-eid       (make-eid "top-panel")
+                             :summary-eid         (make-eid "summary")
+                             :expansion-panel-eid (make-eid "expansion-panel")}]
+               ^{:key (:id t)}
+               [task-list-item t context])))]]))
 
 (defn controls-panel
   ""
