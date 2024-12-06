@@ -194,34 +194,41 @@
         task-item-element (js/document.getElementById (:item-eid ctx))]
     (flash-element summary-element))))
 
+(defn task-box-keygen [task]
+  (str "key-task-box-" (:id task)))
+
 (defn task-list-context-stack
   "This is the stack of tasks that have been recursed into, shown at the
   top of the task list."
   [context-stack]
-  [:div.ww-task-context-list
-   (when (seq @context-stack)
-     [:div
-      (let
-          [list (first (clojure.set/select #(= (:id %) @selected-list-id) @list-table))]
-        [:div.ww-task-list-context-item
-         {:on-click reset-context}
-         (:icon list)
-         (:name list)
-         ])
+  ;; [:div.ww-task-context-list
+   ;; (when (seq @context-stack)
+   ;;   [:div
+   ;;    (let
+   ;;        [list (first (clojure.set/select #(= (:id %) @selected-list-id) @list-table))]
+   ;;      [:div.ww-task-list-context-item
+   ;;       {:on-click reset-context}
+   ;;       (:icon list)
+   ;;       (:name list)
+   ;;       ])
       (doall
        (map-indexed
         (fn [context-index task]
-          ^{:key (str "STACK:" (:id task))}
-          [:div.ww-task-list-context-item
+          ;; ^{:key (task-box-keygen task)}
+          [
+           ;; :div.ww-task-list-context-item
+           :div.ww-task-list-item
            {:on-click #(do
                          (reset! context-stack (subvec @context-stack 0 (inc context-index)))
                          (reset! selected-task-item-id nil))}
            (str "⤵️ " (:summary task))])
-        @context-stack))])])
+        @context-stack)))
+  ;; ])])
 
 (defn task-creation-box
   "This is the area where users can enter text and inline-actions for new tasks."
   []
+  ^{:key "task-creation-box"}
   [:div.ww-task-creation-box
    {:content-editable true
     :data-ph (if (seq @context-stack) "New Subtask..." "New task...")
@@ -240,7 +247,7 @@
   (let
       [selected-task-id @selected-task-item-id
        is-selected-item (and selected-task-item-id (= selected-task-id (:id t)))]
-    ^{:key (:id t)}
+    ^{:key (task-box-keygen t)}
     [:div.ww-task-list-item
      {:id (:item-eid context)
       :class (if is-selected-item "ww-task-list-item--selected")}
@@ -312,22 +319,37 @@
                             (not (nil? @selected-list-id)) :task? ;; TODO
                             :default :task?)
        tasks            (query-entities task-query-forms)]
-  [:div.ww-task-list
-   [task-list-context-stack context-stack]
-   (when recursed-into-task
-     [:div.ww-task-list-context-separator
-        "Direct Subtasks"])
-   [task-creation-box]
-   [(r/adapt-react-class js/FlipMove)
-    (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) tasks)]
-             (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
-                   context  {:task                t
-                             :item-eid            (make-eid "item")
-                             :top-panel-eid       (make-eid "top-panel")
-                             :summary-eid         (make-eid "summary")
-                             :expansion-panel-eid (make-eid "expansion-panel")}]
-               ^{:key (:id t)}
-               [task-list-item t context])))]]))
+    [(r/adapt-react-class js/FlipMove) {:class "ww-task-list"
+                                        :appear-animation nil
+                                        :enter-animation "fade"
+                                        :leave-animation "fade"
+                                        :duration 350} ;; debug
+     ;; (task-list-context-stack context-stack)
+     (concat (doall
+      (map-indexed
+       (fn [context-index task]
+         ;; ^{:key (task-box-keygen task)}
+         ^{:key (task-box-keygen task)}
+         [:div.ww-task-list-context-item
+          {:style {:position "relative" :z-index 10000}
+           :on-click #(do
+                        (reset! context-stack (subvec @context-stack 0 (inc context-index)))
+                        (reset! selected-task-item-id nil))}
+          (str "⤵️ " (:summary task))])
+       @context-stack))
+     ;; (when recursed-into-task
+     ;;   [:div.ww-task-list-context-separator
+     ;;      "Direct Subtasks"])
+     [(task-creation-box)]
+     (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) tasks)]
+              (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
+                    context  {:task                t
+                              :item-eid            (make-eid "item")
+                              :top-panel-eid       (make-eid "top-panel")
+                              :summary-eid         (make-eid "summary")
+                              :expansion-panel-eid (make-eid "expansion-panel")}]
+                ;; ^{:key (task-box-keygen t)}
+                (task-list-item t context)))))]))
 
 (defn controls-panel
   ""

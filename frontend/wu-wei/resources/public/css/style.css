@@ -115,6 +115,7 @@ html, body {
 }
 
 .ww-task-list-context-item {
+    background: white;
     border-bottom: solid 1px lightgray;
     cursor: pointer;
 }
@@ -146,10 +147,10 @@ html, body {
     /* transition: height 0.25s ease-out; */
 }
 
-.ww-task-list-item:hover:not(.ww-task-list-item--selected) .ww-task-list-item-expansion-panel {
-    max-height: 2em;
-    transition: max-height 0.25s ease-out;
-}
+/* .ww-task-list-item:hover:not(.ww-task-list-item--selected) .ww-task-list-item-expansion-panel { */
+/*     max-height: 2em; */
+/*     transition: max-height 0.25s ease-out; */
+/* } */
 
 .ww-task-list-item--selected .ww-task-list-item-expansion-panel {
     /* height: auto; */
