@@ -3,55 +3,10 @@
   (:require react-dom
             [reagent.core :as r]
             [reagent.dom :as rd]
-            [cljs-http.client :as http]
-            [cljs.core.async :refer [<!]]
             [clojure.edn :as edn]
             [wu-wei.entities :as entities]
+            [wu-wei.requests :as requests]
             [cljsjs.react-flip-move]))
-
-;;
-;; Backend Requests
-;;
-
-(defn backend-address
-  "Generate a path on the server, assumed to be the same location that served the frontend.
-
-  TODO: Should be using SSL if this is ever exposed to the internet."
-  [path]
-  (str "http://" (.-hostname js/location) ":" (.-port js/location) path))
-
-(defn backend-request
-  "Send an HTTP request to the backend, given a verb, endpoint, body EDN, and callback."
-  [verb endpoint body callback]
-  (println (str "frontend -> backend: '" endpoint "' '" body "'"))
-  (go (let [response (<! (verb (backend-address endpoint)
-                                   {:with-credentials? false
-                                    :body (pr-str body)
-                                    :headers {"Content-type" "text/edn"}}))]
-        (let [status (:status response)]
-          (if (= status 200)
-            (apply callback [status (edn/read-string (:body response))])
-            (apply callback [status nil]))))))
-
-(defn backend-put
-  "PUT on the backend -- given an endpoint, EDN body, and a callback."
-  [endpoint body cb]
-  (backend-request http/put endpoint body cb))
-
-(defn backend-post
-  "POST on the backend -- given an endpoint, EDN body, and a callback."
-  [endpoint body cb]
-  (backend-request http/post endpoint body cb))
-
-(defn backend-get
-  "GET on the backend -- given an endpoint and a callback."
-  [endpoint cb]
-  (backend-request http/get endpoint nil cb))
-
-(defn backend-patch
-  "PATCH on the backend -- given an endpoint, EDN body, and a callback."
-  [endpoint body cb]
-  (backend-request http/patch endpoint body cb))
 
 ;;
 ;; Entity Caching & Retrieval
@@ -66,7 +21,7 @@
 
   Updates `entity-cache` asynchronously -- does not return a value."
   [id]
-  (backend-get
+  (requests/backend-get
    (str "/entity/" id)
    (fn [status-code entity-data]
      (if (= status-code 200)
@@ -77,7 +32,7 @@
 
   Updates `entity-cache` asynchronously -- does not return a value."
   []
-  (backend-post
+  (requests/backend-post
    "/search-entities"
    :true ;; Matches all entities
    (fn [status-code entity-ids]
@@ -118,7 +73,7 @@
 (defn update-task
   ""
   [task-update-map]
-  (backend-patch "/entity" task-update-map #(fetch-all-entities)))
+  (requests/backend-patch "/entity" task-update-map #(fetch-all-entities)))
 
 (defn make-new-task-current-context [task-content]
   (let
@@ -126,7 +81,7 @@
        parent-task            (some-> @context-stack last)
        parent-task-id         (:id parent-task)
        parent-subtask-ids     (:subtask-ids parent-task)]
-    (backend-put "/entity" completed-task
+    (requests/backend-put "/entity" completed-task
                  (fn callback [status new-id]
                    (let
                        [parent-task         (get @entity-cache parent-task-id)
