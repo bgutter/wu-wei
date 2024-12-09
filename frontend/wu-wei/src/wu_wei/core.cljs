@@ -1,36 +1,38 @@
-(ns wu_wei.core
+(ns wu-wei.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require react-dom
             [reagent.core :as r]
             [reagent.dom :as rd]
-            [clojure.edn :as edn]
+            [wu-wei.util :as util]
             [wu-wei.entities :as entities]
+            [wu-wei.entities.caching :as entity-cache]
             [wu-wei.requests :as requests]
+            [wu-wei.components.task-list :refer [task-list]]
             [cljsjs.react-flip-move]))
 
 ;;
 ;; Entity Caching & Retrieval
 ;;
 
-(def entity-cache
+
+(def entity-cache-atom
   "Atom containing a mapping from entity ID to cached entity data."
   (r/atom {}))
 
-(defn fetch-entity
-  "Retrieve data for this entity ID from backend.
-
-  Updates `entity-cache` asynchronously -- does not return a value."
+(defn fetch-entity!
+  "Update `entity-cache-atom` with details for this entity from the backend"
   [id]
   (requests/backend-get
    (str "/entity/" id)
    (fn [status-code entity-data]
      (if (= status-code 200)
-       (swap! entity-cache assoc id entity-data)))))
+       ;; (swap! entity-cache assoc id entity-data)))))
+       (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) id entity-data)))))
 
-(defn fetch-all-entities
+(defn fetch-all-entities!
   "Retrieve data for all entities from backend.
 
-  Updates `entity-cache` asynchronously -- does not return a value."
+  Updates `entity-cache-atom` asynchronously -- does not return a value."
   []
   (requests/backend-post
    "/search-entities"
@@ -39,43 +41,37 @@
      (if (= status-code 200)
        (dorun
         (for [id entity-ids]
-          (fetch-entity id)))))))
+          (fetch-entity! id)))))))
 
-(defn query-entities
-  "Find all entities matching a query form."
-  [query-forms]
-  (let
-      [matcher (entities/compile-query query-forms #(get @entity-cache %))]
-    (filter matcher (map second @entity-cache))))
+(fetch-all-entities!)
 
 ;;
 ;; UI
 ;;
 
 ;; TODO GOALS
-(def selected-list-id (r/atom 1))
+#_(def selected-list-id (r/atom 1))
 
-(def context-stack       (r/atom []))
+#_(def context-stack       (r/atom []))
 
-(def list-table (r/atom #{}))
+#_(def list-table (r/atom #{}))
 
 (def active-perspective (r/atom :task-list))
 
-(def selected-task-item-id (r/atom nil))
-(def task-list-selected-task-item-summary-edited (r/atom nil))
+#_(def selected-task-item-id (r/atom nil))
+#_(def task-list-selected-task-item-summary-edited (r/atom nil))
 
-(defn select-list-id
+#_(defn select-list-id
   ""
   [id]
   (reset! selected-list-id id))
 
-
-(defn update-task
+#_(defn update-task
   ""
   [task-update-map]
   (requests/backend-patch "/entity" task-update-map #(fetch-all-entities)))
 
-(defn make-new-task-current-context [task-content]
+#_(defn make-new-task-current-context [task-content]
   (let
       [completed-task         (merge entities/task-defaults {:list-id @selected-list-id} task-content)
        parent-task            (some-> @context-stack last)
@@ -94,8 +90,8 @@
   [milestone]
   (println milestone)
   [:div.ww-list-menu-entry
-   {:class (if (= @selected-list-id (:id milestone)) "ww-list-menu-entry--selected" "")
-    :on-click #(select-list-id (:id milestone))}
+   ;; {:class (if (= @selected-list-id (:id milestone)) "ww-list-menu-entry--selected" "")
+    ;; :on-click #(select-list-id (:id milestone))}
    [:p.ww-list-menu-entry-icon (or (:icon milestone) "X")]
    [:p.ww-list-menu-entry-title (:summary milestone)]
    [:p.ww-flexbox-spacer]
@@ -107,7 +103,7 @@
   [:div.ww-list-menu-section
    [:div.ww-list-menu-section-title "Goals"]
    [list-menu-entry { :summary "Inbox" :icon "📥" }]
-   (for [milestone (query-entities :milestone?)]
+   (for [milestone (entity-cache/query @entity-cache-atom :milestone?)]
      [list-menu-entry milestone])])
 
 (defn list-menu-filters-section
@@ -130,158 +126,15 @@
    [list-menu-lists-section]
    [list-menu-tags-section]])
 
-(defn recurse-into-task
-  ""
-  [task]
-  (swap! context-stack conj task))
-
-(defn reset-context []
-  (reset! context-stack [])
-  (reset! selected-task-item-id nil))
-
 (defn flash-element [element]
   (.add (.-classList element) "ww-task-list-item--edit-flash")
   (js/setTimeout #(.remove (.-classList element) "ww-task-list-item--edit-flash") 500))
 
-(defn on-task-summary-edit-completed [ctx]
-  (if @task-list-selected-task-item-summary-edited
-    (let [summary-element (js/document.getElementById (:summary-eid ctx))
-        task-item-element (js/document.getElementById (:item-eid ctx))]
-    (flash-element summary-element))))
-
-(defn task-box-keygen [task]
-  (str "key-task-box-" (:id task)))
-
-(defn task-list-context-stack
-  "This is the stack of tasks that have been recursed into, shown at the
-  top of the task list."
-  [context-stack]
-  (doall
-   (map-indexed
-    (fn [context-index task]
-      ^{:key (task-box-keygen task)}
-      [:div.ww-task-list-context-item
-       {:style {:position "relative" :z-index 1000}
-        :on-click #(do
-                     (reset! context-stack (subvec @context-stack 0 (inc context-index)))
-                     (reset! selected-task-item-id nil))}
-       (str "⤵️ " (:summary task))])
-    @context-stack)))
-
-(defn task-creation-box
-  "This is the area where users can enter text and inline-actions for new tasks."
-  []
-  ^{:key "task-creation-box"}
-  [:div.ww-task-creation-box
-   {:content-editable true
-    :data-ph (if (seq @context-stack) "New Subtask..." "New task...")
-    :on-key-down #(do
-                    (js/console.log "Pressed" (.-key %))
-                    (if (= (.-key %) "Enter")
-                      (do
-                        (make-new-task-current-context
-                         {:summary (.-textContent (.-target %))})
-                        (set! (-> % .-target .-textContent) "")
-                        (.preventDefault %))))}])
-
-(defn task-list-item
-  "An individual item within the task-list"
-  [t context]
-  (let
-      [selected-task-id @selected-task-item-id
-       is-selected-item (and selected-task-item-id (= selected-task-id (:id t)))]
-    ^{:key (task-box-keygen t)}
-    [:div.ww-task-list-item
-     {:id (:item-eid context)
-      :class (if is-selected-item "ww-task-list-item--selected")}
-
-     [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-task-item-id (:id t))}
-      [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
-       "OPEN"]
-      (if (seq (:subtask-ids t))
-        [:div "⋮⋮⋮"])
-      [:div.ww-task-list-item-summary
-       {:id (:summary-eid context)
-        ;; User can edit these directly
-        :content-editable "true"
-        ;; when enter key pressed, lose focus
-        :on-key-down #(do
-                        (if (= (.-key %) "Enter")
-                          (.blur (.-target %))
-                          (reset! task-list-selected-task-item-summary-edited true)))
-        ;; when exiting focus, apply changes
-        :on-blur #(do
-                    (on-task-summary-edit-completed context)
-                    (update-task {:id (:id t) :summary (.-textContent (.-target %))})
-                    (reset! task-list-selected-task-item-summary-edited false)
-                    ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
-                    )}
-       (:summary t)]
-      [:div.ww-task-list-item-time-til-due (:id t)]]
-
-     [:div.ww-task-list-item-expansion-panel
-      {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
-
-      [:div.ww-task-list-item-body
-       {:content-editable "true"
-        :data-ph "Enter a description..."}]
-
-      [:div.ww-task-list-item-bottom-panel
-       [:div.ww-task-list-item-scheduling "Start: November 2nd"]
-       [:div.ww-task-list-item-scheduling "Due: November 11th"]
-       [:div.ww-task-list-item-scheduling "Owner: Samantha"]
-       [:div.ww-task-list-item-scheduling "Effort: 3D"]
-       (if (not (:subtask-ids t))
-         [:div.ww-task-list-item-scheduling "Add Subtask"])
-       [:div.ww-flexbox-spacer]]
-
-      (if (not (empty? (:subtask-ids t)))
-        [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
-
-      [:div.ww-task-list-item-subtasks-panel
-       (if (:subtask-ids t)
-         [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
-       ;; (if (seq (:subtask-ids t))
-         [:div.ww-task-list-item-scheduling
-          {:on-click #(recurse-into-task t)}
-          "⤵️ Recurse"]
-       (doall
-        (for [subtask-id (:subtask-ids t)]
-          (let [subtask (get @entity-cache subtask-id)]
-            [:div.ww-task-list-item-subtasks-blurb
-             (str " ▢ " (:summary subtask))])))]]]))
-
-(defn task-list
-  "Component showing task list."
-  []
-  (let
-      [context-stack-items @context-stack
-       recursed-into-task  (seq context-stack-items)
-       task-query-forms    (cond
-                            recursed-into-task [:subtask-of? (:id (last context-stack-items))]
-                            (not (nil? @selected-list-id)) :task? ;; TODO
-                            :default :task?)
-       tasks            (query-entities task-query-forms)]
-    [(r/adapt-react-class js/FlipMove) {:class "ww-task-list"
-                                        :appear-animation nil
-                                        :enter-animation "fade"
-                                        :leave-animation "fade"
-                                        :duration 350} ;; debug
-     (concat
-      (task-list-context-stack context-stack)
-      (when recursed-into-task
-        ^{:key "direct-subtask-separator"}
-       [[:div.ww-task-list-context-separator
-          "Direct Subtasks"]])
-     [(task-creation-box)]
-     (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) tasks)]
-              (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
-                    context  {:task                t
-                              :item-eid            (make-eid "item")
-                              :top-panel-eid       (make-eid "top-panel")
-                              :summary-eid         (make-eid "summary")
-                              :expansion-panel-eid (make-eid "expansion-panel")}]
-                (task-list-item t context)))))]))
+;; (defn on-task-summary-edit-completed [ctx]
+;;   (if @task-list-selected-task-item-summary-edited
+;;     (let [summary-element (js/document.getElementById (:summary-eid ctx))
+;;         task-item-element (js/document.getElementById (:item-eid ctx))]
+;;     (flash-element summary-element))))
 
 (defn controls-panel
   ""
@@ -427,11 +280,13 @@
     (case @active-perspective
       :task-list [:div.ww-task-list-perspective
                   [list-menu]
-                  [task-list]]
+                  [task-list nil entity-cache-atom]]
       :notes     [:div.ww-notes-perspective
                   [notes-menu]
                   [notes-view]])]])
 
 (rd/render [app] (.-body js/document))
 
-(fetch-all-entities)
+#_(rd/render [task-list nil entity-cache-atom] (.-body js/document))
+
+#_(fetch-all-entities)

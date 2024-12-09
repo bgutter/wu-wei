@@ -120,6 +120,10 @@ html, body {
     cursor: pointer;
 }
 
+.ww-task-list-context-item--final {
+    /* background: yellow; */
+}
+
 .ww-task-list-item-top-panel {
     display: flex;
     flex-direction: columns;

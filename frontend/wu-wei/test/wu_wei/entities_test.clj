@@ -1,6 +1,7 @@
 (ns wu-wei.entities-test
   (:require [clojure.test :refer :all]
-            [wu-wei.entities :refer :all]))
+            [wu-wei.entities :refer :all]
+            [wu-wei.util :as util]))
 
 (deftest test--class-predicates
   "Test class predicates like `wu-wei.entities/task?`, etc."
@@ -39,8 +40,8 @@
   "Test the `wu-wei.entities/compile-query` function."
   (let
       [entities               {1 {:id 1 :summary "Some Task" :status :open}
-                               2 {:id 2 :summary "Another one" :start-time (time-from-str "2015-1-1")}
-                               3 {:id 3 :summary "Important meeting" :status :open :start-time (time-from-str "2024-7-1")}
+                               2 {:id 2 :summary "Another one" :start-time (util/time-from-str "2015-1-1")}
+                               3 {:id 3 :summary "Important meeting" :status :open :start-time (util/time-from-str "2024-7-1")}
                                4 {:id 4 :summary "Do some stuff" :status :open :subtask-ids #{1 3}}
                                5 {:id 5 :summary "My Milestone" :status :open :subtask-ids #{4} :milestone true}}
        lookup-entity-fn       (partial get entities)
@@ -75,8 +76,8 @@
         (is (not (task-or-event-matcher a-nothing)))))
     (testing "event time filters"
       (let
-          [event-before-2014-matcher (compile-query [:occurs-before? (time-from-str "2014-1-1")] lookup-entity-fn)
-           event-before-2016-matcher  (compile-query [:occurs-before? (time-from-str "2016-1-1")] lookup-entity-fn)]
+          [event-before-2014-matcher (compile-query [:occurs-before? (util/time-from-str "2014-1-1")] lookup-entity-fn)
+           event-before-2016-matcher  (compile-query [:occurs-before? (util/time-from-str "2016-1-1")] lookup-entity-fn)]
         (is (not (event-before-2014-matcher an-event-in-2015)))
         (is (event-before-2016-matcher an-event-in-2015))))
     (testing "ascendents and descendents"
