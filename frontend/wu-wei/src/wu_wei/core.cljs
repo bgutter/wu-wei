@@ -58,8 +58,8 @@
 
 (def active-perspective (r/atom :task-list))
 
+(def task-list-selected-entity-id-atom (r/atom nil))
 (def task-list-query-forms-atom (r/atom nil))
-
 (def task-list-context-stack-atom (r/atom []))
 
 #_(def selected-task-item-id (r/atom nil))
@@ -109,6 +109,7 @@
      [list-menu-entry milestone
       {:on-select (fn []
                     (reset! task-list-context-stack-atom [(:id milestone)])
+                    (reset! task-list-selected-entity-id-atom nil)
                     (reset! task-list-query-forms-atom :true))}])])
 
 (defn list-menu-filters-section
@@ -119,10 +120,12 @@
    [list-menu-entry { :summary "Inbox" :icon "📥" }
     {:on-select (fn []
                   (reset! task-list-context-stack-atom [])
+                  (reset! task-list-selected-entity-id-atom nil)
                   (reset! task-list-query-forms-atom :milestone?))}]
    [list-menu-entry { :summary "All Tasks" :icon "🌎" }
     {:on-select (fn []
                   (reset! task-list-context-stack-atom [])
+                  (reset! task-list-selected-entity-id-atom nil)
                   (reset! task-list-query-forms-atom :true))}]])
 
 (defn list-menu-tags-section
@@ -293,7 +296,8 @@
     (case @active-perspective
       :task-list [:div.ww-task-list-perspective
                   [list-menu]
-                  [task-list {:context-stack-atom task-list-context-stack-atom
+                  [task-list {:selected-id-atom task-list-selected-entity-id-atom
+                              :context-stack-atom task-list-context-stack-atom
                               :entity-cache-atom entity-cache-atom
                               :query-forms-atom task-list-query-forms-atom}]]
       :notes     [:div.ww-notes-perspective

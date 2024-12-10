@@ -120,72 +120,70 @@
 
   `root-task-id` is the :id property of the task containing all of the
   tasks to draw in the list."
-  [{:keys [entity-cache-atom query-forms-atom context-stack-atom]}]
+  [{:keys [entity-cache-atom query-forms-atom context-stack-atom selected-id-atom]}]
   (let
-      [selected-entity-id-atom (r/atom nil)] ;; int ID
-    (fn []
-      (let
-          [context-task-ids @context-stack-atom
-           context-tasks (map #(entity-cache/lookup-id @entity-cache-atom %) context-task-ids)
-           direct-subtasks (entity-cache/query @entity-cache-atom [:subtask-of? (:id (last context-tasks))])
-           indirect-subtasks (entity-cache/query @entity-cache-atom [:and
-                                                                     [:descendent-of? (:id (last context-tasks))]
-                                                                     [:not [:subtask-of? (:id (last context-tasks))]]])
-           task-to-task-list-item (fn [task]
-                                    (task-list-item task
-                                                    {:is-selected?
-                                                     (and @selected-entity-id-atom
-                                                          (= @selected-entity-id-atom (:id task)))
-                                                     :on-select
-                                                     (fn []
-                                                       (reset! selected-entity-id-atom (:id task)))
-                                                     :on-recurse
-                                                     (fn []
-                                                       (reset! selected-entity-id-atom nil)
-                                                       (swap! context-stack-atom conj (:id task)))}))]
-        [(r/adapt-react-class js/FlipMove)
-         {:class "ww-task-list"
-          :appear-animation nil
-          :enter-animation "fade"
-          :leave-animation "fade"
-          :duration 350} ;; debug
-         (if (seq context-tasks)
+      [context-task-ids @context-stack-atom
+       context-tasks (map #(entity-cache/lookup-id @entity-cache-atom %) context-task-ids)
+       direct-subtasks (entity-cache/query @entity-cache-atom [:subtask-of? (:id (last context-tasks))])
+       indirect-subtasks (entity-cache/query @entity-cache-atom [:and
+                                                                 [:descendent-of? (:id (last context-tasks))]
+                                                                 [:not [:subtask-of? (:id (last context-tasks))]]])
+       task-to-task-list-item (fn [task]
+                                (task-list-item task
+                                                {:is-selected?
+                                                 (and @selected-id-atom
+                                                      (= @selected-id-atom (:id task)))
+                                                 :on-select
+                                                 (fn []
+                                                   (reset! selected-id-atom (:id task)))
+                                                 :on-recurse
+                                                 (fn []
+                                                   (reset! selected-id-atom nil)
+                                                   (swap! context-stack-atom conj (:id task)))}))]
+    [(r/adapt-react-class js/FlipMove)
+     {:class "ww-task-list"
+      :easing "ease-out"
+      :appear-animation nil
+      :enter-animation "fade"
+      :leave-animation "fade"
+      :duration 350} ;; debug
+     (if (seq context-tasks)
 
-           ;; Recursed mode
-           ;; - Shows 3 sections of tasks:
-           ;;   - Context stack
-           ;;   - direct subtasks
-           ;;   - indirect subtasks
-           (concat
+       ;; Recursed mode
+       ;; - Shows 3 sections of tasks:
+       ;;   - Context stack
+       ;;   - direct subtasks
+       ;;   - indirect subtasks
+       (concat
 
-            ;; The context stack
-            (doall
-             (map-indexed (fn [context-index task]
-                            (context-task-list-item task
-                                                    {:on-select
-                                                     (fn []
-                                                       (swap! context-stack-atom subvec 0 (inc context-index)))
-                                                     :is-bottom
-                                                     (= context-index (dec (count context-tasks)))}))
-                          context-tasks))
+        ;; The context stack
+        (doall
+         (map-indexed (fn [context-index task]
+                        (context-task-list-item task
+                                                {:on-select
+                                                 (fn []
+                                                   (swap! context-stack-atom subvec 0 (inc context-index)))
+                                                 :is-bottom
+                                                 (= context-index (dec (count context-tasks)))}))
+                      context-tasks))
 
-            ;; The task creation box
-            [(task-creation-box {:placeholder-text (str "New Subtask of '" (:summary (last context-tasks)) "'")})]
+        ;; The task creation box
+        [(task-creation-box {:placeholder-text (str "New Subtask of '" (:summary (last context-tasks)) "'")})]
 
-            ;; The direct subtasks
-            [(task-list-divider "Direct Subtasks")]
-            (doall (map task-to-task-list-item direct-subtasks))
+        ;; The direct subtasks
+        [(task-list-divider "Direct Subtasks")]
+        (doall (map task-to-task-list-item direct-subtasks))
 
-            ;; The indirect subtasks
-            [(task-list-divider "Indirect Subtasks")]
-            (doall (map task-to-task-list-item indirect-subtasks)))
+        ;; The indirect subtasks
+        [(task-list-divider "Indirect Subtasks")]
+        (doall (map task-to-task-list-item indirect-subtasks)))
 
-           ;; Un-Recursed Mode
-           ;; - Displays all tasks
-           (concat
-            [(task-creation-box {:placeholder-text "New Goal"})]
-            (doall (map task-to-task-list-item
-                        (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))))
+       ;; Un-Recursed Mode
+       ;; - Displays all tasks
+       (concat
+        [(task-creation-box {:placeholder-text "New Goal"})]
+        (doall (map task-to-task-list-item
+                    (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
 
     ;;   [context-stack-items @context-stack
     ;;    recursed-into-task  (seq context-stack-items)
