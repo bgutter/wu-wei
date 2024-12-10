@@ -58,6 +58,10 @@
 
 (def active-perspective (r/atom :task-list))
 
+(def task-list-query-forms-atom (r/atom nil))
+
+(def task-list-context-stack-atom (r/atom []))
+
 #_(def selected-task-item-id (r/atom nil))
 #_(def task-list-selected-task-item-summary-edited (r/atom nil))
 
@@ -87,9 +91,8 @@
 
 (defn list-menu-entry
   ""
-  [milestone]
-  (println milestone)
-  [:div.ww-list-menu-entry
+  [milestone {:keys [on-select]}]
+  [:div.ww-list-menu-entry {:on-click on-select}
    ;; {:class (if (= @selected-list-id (:id milestone)) "ww-list-menu-entry--selected" "")
     ;; :on-click #(select-list-id (:id milestone))}
    [:p.ww-list-menu-entry-icon (or (:icon milestone) "X")]
@@ -101,16 +104,26 @@
   ""
   []
   [:div.ww-list-menu-section
-   [:div.ww-list-menu-section-title "Goals"]
-   [list-menu-entry { :summary "Inbox" :icon "📥" }]
+   [:div.ww-list-menu-section-title "Milestones"]
    (for [milestone (entity-cache/query @entity-cache-atom :milestone?)]
-     [list-menu-entry milestone])])
+     [list-menu-entry milestone
+      {:on-select (fn []
+                    (reset! task-list-context-stack-atom [(:id milestone)])
+                    (reset! task-list-query-forms-atom :true))}])])
 
 (defn list-menu-filters-section
   ""
   []
   [:div.ww-list-menu-section
-   [:div.ww-list-menu-section-title "Filters"]])
+   [:div.ww-list-menu-section-title "Filters"]
+   [list-menu-entry { :summary "Inbox" :icon "📥" }
+    {:on-select (fn []
+                  (reset! task-list-context-stack-atom [])
+                  (reset! task-list-query-forms-atom :milestone?))}]
+   [list-menu-entry { :summary "All Tasks" :icon "🌎" }
+    {:on-select (fn []
+                  (reset! task-list-context-stack-atom [])
+                  (reset! task-list-query-forms-atom :true))}]])
 
 (defn list-menu-tags-section
   ""
@@ -280,7 +293,9 @@
     (case @active-perspective
       :task-list [:div.ww-task-list-perspective
                   [list-menu]
-                  [task-list nil entity-cache-atom]]
+                  [task-list {:context-stack-atom task-list-context-stack-atom
+                              :entity-cache-atom entity-cache-atom
+                              :query-forms-atom task-list-query-forms-atom}]]
       :notes     [:div.ww-notes-perspective
                   [notes-menu]
                   [notes-view]])]])

@@ -86,7 +86,6 @@
 (defn context-task-list-item
   "An item in a `task-list` that represents a task in the context-stack of the list."
   [task {:keys [on-select is-bottom]}]
-  (println (str "CONTEXT: " task))
   ^{:key (task-box-keygen task)}
   [:div.ww-task-list-context-item
    {:style {:position "relative" :z-index 1000}
@@ -113,6 +112,7 @@
 
 (defn task-list-divider
   [section-name]
+  ^{:key (str "task-list-divider-" section-name)}
   [:div.ww-task-list-context-separator section-name])
 
 (defn task-list
@@ -120,10 +120,9 @@
 
   `root-task-id` is the :id property of the task containing all of the
   tasks to draw in the list."
-  [initial-context entity-cache-atom]
+  [{:keys [entity-cache-atom query-forms-atom context-stack-atom]}]
   (let
-      [context-stack-atom (r/atom (or initial-context [])) ;; vector of entity IDs
-       selected-entity-id-atom (r/atom nil)] ;; int ID
+      [selected-entity-id-atom (r/atom nil)] ;; int ID
     (fn []
       (let
           [context-task-ids @context-stack-atom
@@ -144,7 +143,6 @@
                                                      (fn []
                                                        (reset! selected-entity-id-atom nil)
                                                        (swap! context-stack-atom conj (:id task)))}))]
-        (println context-task-ids)
         [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"
           :appear-animation nil
@@ -187,7 +185,7 @@
            (concat
             [(task-creation-box {:placeholder-text "New Goal"})]
             (doall (map task-to-task-list-item
-                        (entity-cache/query @entity-cache-atom :task?)))))]))))
+                        (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))))
 
     ;;   [context-stack-items @context-stack
     ;;    recursed-into-task  (seq context-stack-items)
