@@ -27,6 +27,12 @@
   (boolean (and (task? entity)
                 (contains? entity :milestone))))
 
+(defn toggle-milestone
+  [entity]
+  (if (:milestone entity)
+    (dissoc entity :milestone)
+    (merge entity {:milestone true})))
+
 (def task-defaults {:status :open :summary ""})
 
 (defn event?

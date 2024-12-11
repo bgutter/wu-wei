@@ -4,6 +4,7 @@
             [reagent.core :as r]
             [reagent.dom :as rd]
             [wu-wei.entities :as entities]
+            [wu-wei.util :as util]
             [wu-wei.entities.caching :as entity-cache]
             [cljsjs.react-flip-move]))
 
@@ -12,7 +13,7 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [t {:keys [is-selected? on-select on-recurse display-mode]}]
+  [t {:keys [is-selected? on-select on-recurse display-mode on-modify-entity]}]
   ^{:key (task-box-keygen t)}
   [:div
 
@@ -59,10 +60,19 @@
     ;; for dev purposes, just shows ID if item for now
     [:div.ww-task-list-item-time-til-due (:id t)]]
 
+   ;; mini panel
    (if (= display-mode :normal)
      [:div.ww-task-list-item-mini-panel
+
+      ;; button to recurse
       [:div.ww-task-list-item-scheduling
-       {:on-click on-recurse} (str "⤵️ Edit")]])
+       {:on-click on-recurse}
+       "⤵️ Edit"]
+
+      ;; button to toggle milestone
+      [:div.ww-task-list-item-scheduling
+       {:on-click #(on-modify-entity (entities/toggle-milestone t))}
+       (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]])
 
    ;; The Expansion Panel
    [:div.ww-task-list-item-expansion-panel
@@ -143,6 +153,10 @@
                                                  :on-select
                                                  (fn []
                                                    (reset! selected-id-atom (:id task)))
+                                                 :on-modify-entity
+                                                 (fn [new-value]
+                                                   ;; TODO: This should send edit request to backend, NOT just edit the cache
+                                                   (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
                                                  :on-recurse
                                                  (fn []
                                                    (reset! selected-id-atom nil)
