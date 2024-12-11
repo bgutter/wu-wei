@@ -146,6 +146,18 @@ html, body {
     /* height: 1em; */
 }
 
+.ww-task-list-item-mini-panel {
+    display: flex;
+    padding-left: 2%;
+    max-height: 0px;
+    transition: max-height 0.25s ease-out;
+}
+
+.ww-task-list-item--selected .ww-task-list-item-mini-panel {
+    max-height: 50px;
+    transition: max-height 0.25s ease-out;
+}
+
 .ww-task-list-item-expansion-panel {
     width: 100%;
     max-height: 0px;
@@ -402,7 +414,7 @@ html, body {
 
 .ww-task-list-item-scheduling {
     color: gray;
-    border: solid 2px gray;
+    border: solid 2px rgb(190,190,190);
     border-radius: 5px;
     padding: 3px;
     margin: 2px;

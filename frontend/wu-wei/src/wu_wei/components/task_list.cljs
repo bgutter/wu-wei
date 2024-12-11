@@ -32,11 +32,6 @@
       [:div.ww-task-list-item-checkbox
        "OPEN"])
 
-    ;; Marker for normal display items representing tasks with subtasks
-    (if (and (seq (:subtask-ids t)) (= display-mode :normal))
-      [:div
-       {:on-click on-recurse} (str "⤵️")])
-
     ;; Editable display of task summary line
     [:div.ww-task-list-item-summary
      {:content-editable "true"
@@ -55,9 +50,19 @@
       }
      (:summary t)]
 
+    ;; Marker for normal display items representing tasks with subtasks
+    (if (and (seq (:subtask-ids t)) (= display-mode :normal))
+      [:div
+       "+"])
+
     ;; numeric field at end of item
     ;; for dev purposes, just shows ID if item for now
     [:div.ww-task-list-item-time-til-due (:id t)]]
+
+   (if (= display-mode :normal)
+     [:div.ww-task-list-item-mini-panel
+      [:div.ww-task-list-item-scheduling
+       {:on-click on-recurse} (str "⤵️ Edit")]])
 
    ;; The Expansion Panel
    [:div.ww-task-list-item-expansion-panel
