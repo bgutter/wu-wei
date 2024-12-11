@@ -74,7 +74,8 @@ html, body {
 }
 
 .ww-task-creation-box {
-    background: lightgray;
+    background: rgb( 240, 240, 240 );
+    border: solid 1px lightgray;
     border-radius: 5px;
     margin: 7px;
     padding: 7px;
@@ -412,7 +413,7 @@ html, body {
     flex-direction: columns;
 }
 
-.ww-task-list-item-scheduling {
+.ww-task-list-item-mini-button {
     color: gray;
     border: solid 2px rgb(190,190,190);
     border-radius: 5px;
@@ -422,13 +423,18 @@ html, body {
     /* top: 40px; */
 }
 
-/* .ww-task-list-item--selected .ww-task-list-item-scheduling { */
+.ww-task-list-item-mini-button--selected {
+    color: blue;
+    border: solid 2px blue;
+}
+
+/* .ww-task-list-item--selected .ww-task-list-item-mini-button { */
 /*     top: 0px; */
 /* } */
 
-.ww-task-list-item-scheduling:hover {
+.ww-task-list-item-mini-button:hover {
     cursor: pointer;
-    border: solid 2px gray;
+    border: solid 2px;
     background: rgb( 240, 240, 240 );
     transition: background 0.5s 0.5s ease-out;
 }

@@ -95,7 +95,7 @@
   [:div.ww-list-menu-entry {:on-click on-select}
    ;; {:class (if (= @selected-list-id (:id milestone)) "ww-list-menu-entry--selected" "")
     ;; :on-click #(select-list-id (:id milestone))}
-   [:p.ww-list-menu-entry-icon (or (:icon milestone) "X")]
+   ;; [:p.ww-list-menu-entry-icon (or (:icon milestone) "X")]
    [:p.ww-list-menu-entry-title (:summary milestone)]
    [:p.ww-flexbox-spacer]
    [:p.ww-list-menu-entry-count (:id milestone)]])

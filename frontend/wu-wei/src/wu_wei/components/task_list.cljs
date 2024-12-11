@@ -65,13 +65,14 @@
      [:div.ww-task-list-item-mini-panel
 
       ;; button to recurse
-      [:div.ww-task-list-item-scheduling
+      [:div.ww-task-list-item-mini-button
        {:on-click on-recurse}
        "⤵️ Edit"]
 
       ;; button to toggle milestone
-      [:div.ww-task-list-item-scheduling
-       {:on-click #(on-modify-entity (entities/toggle-milestone t))}
+      [:div.ww-task-list-item-mini-button
+       {:class (if (entities/milestone? t) "ww-task-list-item-mini-button--selected")
+        :on-click #(on-modify-entity (entities/toggle-milestone t))}
        (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]])
 
    ;; The Expansion Panel
@@ -84,12 +85,16 @@
 
     ;; Expansion Panel: Bottom Panel
     [:div.ww-task-list-item-bottom-panel
-     [:div.ww-task-list-item-scheduling "Start: November 2nd"]
-     [:div.ww-task-list-item-scheduling "Due: November 11th"]
-     [:div.ww-task-list-item-scheduling "Owner: Samantha"]
-     [:div.ww-task-list-item-scheduling "Effort: 3D"]
+     [:div.ww-task-list-item-mini-button
+      {:class (if (entities/milestone? t) "ww-task-list-item-mini-button--selected")
+        :on-click #(on-modify-entity (entities/toggle-milestone t))}
+      (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]
+     [:div.ww-task-list-item-mini-button "Start: November 2nd"]
+     [:div.ww-task-list-item-mini-button "Due: November 11th"]
+     [:div.ww-task-list-item-mini-button "Owner: Samantha"]
+     [:div.ww-task-list-item-mini-button "Effort: 3D"]
      (if (not (:subtask-ids t))
-       [:div.ww-task-list-item-scheduling "Add Subtask"])
+       [:div.ww-task-list-item-mini-button "Add Subtask"])
      [:div.ww-flexbox-spacer]]
 
     ;; (if (not (empty? (:subtask-ids t)))
@@ -99,7 +104,7 @@
       ;;  (if (:subtask-ids t)
       ;;    [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
       ;;  ;; (if (seq (:subtask-ids t))
-      ;;    [:div.ww-task-list-item-scheduling
+      ;;    [:div.ww-task-list-item-mini-button
       ;;     ;; {:on-click #(recurse-into-task t)}
       ;;     "⤵️ Recurse"]
       ;;  (doall
@@ -186,6 +191,10 @@
                                          (if (= context-index (dec (count context-tasks)))
                                            :context-final
                                            :context)
+                                         :on-modify-entity
+                                         (fn [new-value]
+                                           ;; TODO: This should send edit request to backend, NOT just edit the cache
+                                           (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
                                          :on-select
                                          (fn []
                                            (swap! context-stack-atom subvec 0 (inc context-index)))}))
