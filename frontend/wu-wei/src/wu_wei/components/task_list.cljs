@@ -12,62 +12,73 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [t {:keys [is-selected? on-select on-recurse]}]
-  (let
-      [selected-task-id nil ;@selected-task-item-id
-       context nil
-       is-selected-item is-selected?] ; (and selected-task-item-id (= selected-task-id (:id t)))]
-    ^{:key (task-box-keygen t)}
-    [:div.ww-task-list-item
-     {:id (:item-eid context)
-      :class (if is-selected-item "ww-task-list-item--selected")}
+  [t {:keys [is-selected? on-select on-recurse display-mode]}]
+  ^{:key (task-box-keygen t)}
+  [:div
 
-     [:div.ww-task-list-item-top-panel {:on-click on-select}
-      [:div.ww-task-list-item-checkbox {:class (if is-selected-item "ww-task-list-item-checkbox--expanded")}
-       "OPEN"]
-      (if (seq (:subtask-ids t))
-        [:div "⋮⋮⋮"])
-      [:div.ww-task-list-item-summary
-       {:id (:summary-eid context)
-        ;; User can edit these directly
-        :content-editable "true"
-        ;; when enter key pressed, lose focus
-        ;; :on-key-down #(do
-        ;;                 (if (= (.-key %) "Enter")
-        ;;                   (.blur (.-target %))
-        ;;                   (reset! task-list-selected-task-item-summary-edited true)))
-        ;; ;; when exiting focus, apply changes
-        ;; :on-blur #(do
-        ;;             (on-task-summary-edit-completed context)
-        ;;             (update-task {:id (:id t) :summary (.-textContent (.-target %))})
-        ;;             (reset! task-list-selected-task-item-summary-edited false)
-        ;;             ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
-        ;;             )}
-        }
-       (:summary t)]
-      [:div.ww-task-list-item-time-til-due (:id t)]]
+   {:class (list (if is-selected? "ww-task-list-item--selected")
+                 (case display-mode
+                   :context "ww-task-list-context-item"
+                   :context-final "ww-task-list-context-item--final"
+                   :normal "ww-task-list-item"))
+    :style {:position "relative" :z-index 1000}}
 
-     [:div.ww-task-list-item-expansion-panel
-      {:class (if is-selected-item "ww-task-list-item-expansion-panel--expanded")}
+   [:div.ww-task-list-item-top-panel {:on-click on-select}
 
-      [:div.ww-task-list-item-body
-       {:content-editable "true"
-        :data-ph "Enter a description..."}]
+    ;; Checkbox or recursion icon depending on display mode
+    (if (some #{display-mode} [:context :context-final])
+      [:div
+       (str "⤵️ ")]
+      [:div.ww-task-list-item-checkbox
+       "OPEN"])
 
-      [:div.ww-task-list-item-bottom-panel
-       [:div.ww-task-list-item-scheduling
-          {:on-click on-recurse}
-          "⤵️ Recurse"]
-       [:div.ww-task-list-item-scheduling "Start: November 2nd"]
-       [:div.ww-task-list-item-scheduling "Due: November 11th"]
-       [:div.ww-task-list-item-scheduling "Owner: Samantha"]
-       [:div.ww-task-list-item-scheduling "Effort: 3D"]
-       (if (not (:subtask-ids t))
-         [:div.ww-task-list-item-scheduling "Add Subtask"])
-       [:div.ww-flexbox-spacer]]
+    ;; Marker for normal display items representing tasks with subtasks
+    (if (and (seq (:subtask-ids t)) (= display-mode :normal))
+      [:div
+       {:on-click on-recurse} (str "⤵️")])
 
-      (if (not (empty? (:subtask-ids t)))
-        [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
+    ;; Editable display of task summary line
+    [:div.ww-task-list-item-summary
+     {:content-editable "true"
+      ;; when enter key pressed, lose focus
+      ;; :on-key-down #(do
+      ;;                 (if (= (.-key %) "Enter")
+      ;;                   (.blur (.-target %))
+      ;;                   (reset! task-list-selected-task-item-summary-edited true)))
+      ;; ;; when exiting focus, apply changes
+      ;; :on-blur #(do
+      ;;             (on-task-summary-edit-completed context)
+      ;;             (update-task {:id (:id t) :summary (.-textContent (.-target %))})
+      ;;             (reset! task-list-selected-task-item-summary-edited false)
+      ;;             ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
+      ;;             )}
+      }
+     (:summary t)]
+
+    ;; numeric field at end of item
+    ;; for dev purposes, just shows ID if item for now
+    [:div.ww-task-list-item-time-til-due (:id t)]]
+
+   ;; The Expansion Panel
+   [:div.ww-task-list-item-expansion-panel
+
+    ;; Expansion Panel: Text field for showing and editing the body field
+    [:div.ww-task-list-item-body
+     {:content-editable "true"
+      :data-ph "Enter a description..."}]
+
+    ;; Expansion Panel: Bottom Panel
+    [:div.ww-task-list-item-bottom-panel
+     [:div.ww-task-list-item-scheduling "Start: November 2nd"]
+     [:div.ww-task-list-item-scheduling "Due: November 11th"]
+     [:div.ww-task-list-item-scheduling "Owner: Samantha"]
+     [:div.ww-task-list-item-scheduling "Effort: 3D"]
+     (if (not (:subtask-ids t))
+       [:div.ww-task-list-item-scheduling "Add Subtask"])
+     [:div.ww-flexbox-spacer]]
+
+    ;; (if (not (empty? (:subtask-ids t)))
+    ;;   [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
 
       ;; [:div.ww-task-list-item-subtasks-panel
       ;;  (if (:subtask-ids t)
@@ -81,17 +92,7 @@
       ;;     (let [subtask (get @entity-cache subtask-id)]
       ;;       [:div.ww-task-list-item-subtasks-blurb
       ;;        (str " ▢ " (:summary subtask))])))]
-      ]]))
-
-(defn context-task-list-item
-  "An item in a `task-list` that represents a task in the context-stack of the list."
-  [task {:keys [on-select is-bottom]}]
-  ^{:key (task-box-keygen task)}
-  [:div.ww-task-list-context-item
-   {:style {:position "relative" :z-index 1000}
-    :on-click on-select
-    :class (if is-bottom "ww-task-list-context-item--final")}
-   (str "⤵️ " (:summary task))])
+      ]])
 
 (defn task-creation-box
   "This is the area where users can enter text and inline-actions for new tasks."
@@ -130,7 +131,8 @@
                                                                  [:not [:subtask-of? (:id (last context-tasks))]]])
        task-to-task-list-item (fn [task]
                                 (task-list-item task
-                                                {:is-selected?
+                                                {:display-mode :normal
+                                                 :is-selected?
                                                  (and @selected-id-atom
                                                       (= @selected-id-atom (:id task)))
                                                  :on-select
@@ -146,7 +148,8 @@
       :appear-animation nil
       :enter-animation "fade"
       :leave-animation "fade"
-      :duration 350} ;; debug
+      ;; :duration 5000
+      }
      (if (seq context-tasks)
 
        ;; Recursed mode
@@ -159,12 +162,14 @@
         ;; The context stack
         (doall
          (map-indexed (fn [context-index task]
-                        (context-task-list-item task
-                                                {:on-select
-                                                 (fn []
-                                                   (swap! context-stack-atom subvec 0 (inc context-index)))
-                                                 :is-bottom
-                                                 (= context-index (dec (count context-tasks)))}))
+                        (task-list-item task
+                                        {:display-mode
+                                         (if (= context-index (dec (count context-tasks)))
+                                           :context-final
+                                           :context)
+                                         :on-select
+                                         (fn []
+                                           (swap! context-stack-atom subvec 0 (inc context-index)))}))
                       context-tasks))
 
         ;; The task creation box

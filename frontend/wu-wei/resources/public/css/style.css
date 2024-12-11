@@ -94,11 +94,11 @@ html, body {
 
 .ww-task-list-item {
     background: white;
-    width: 100%;
+    width: 98%;
     font-size: 0.8em;
-    margin: 0px 3px 0px 3px;
-    padding-left: 4px;
-    padding-right: 4px;
+    /* margin: 0px 3px 0px 3px; */
+    margin-left: 1%;
+    margin-right: 1%;
     /* display: flex; */
     /* flex-direction: rows; */
     padding-top: 1px;
@@ -115,9 +115,11 @@ html, body {
 }
 
 .ww-task-list-context-item {
-    background: white;
+    /* background: white; */
+    background: rgb(240,240,255);
     border-bottom: solid 1px lightgray;
     cursor: pointer;
+    padding: 2px;
 }
 
 .ww-task-list-context-item--final {
@@ -134,10 +136,13 @@ html, body {
 
 .ww-task-list-context-separator {
     /* background-image: linear-gradient(gray, lightgray); */
-    background: lightgray;
+    background: rgb(240,240,230);
     color: black;
     font-size: 0.8em;
-    padding-top: 0.3em;
+    padding: 0.3em;
+    margin-left: 1%;
+    margin-right: 1%;
+    width: 98%;
     /* height: 1em; */
 }
 
@@ -156,7 +161,17 @@ html, body {
 /*     transition: max-height 0.25s ease-out; */
 /* } */
 
-.ww-task-list-item--selected .ww-task-list-item-expansion-panel {
+/* .ww-task-list-item--selected .ww-task-list-item-expansion-panel { */
+/*     /\* height: auto; *\/ */
+/*     max-height: 15em; */
+/*     transition: max-height 0.25s ease-out; */
+/*     /\* Slide in from bottom, outside visible area *\/ */
+/*     /\* transition: top 0.25s 0.25s ease-out; *\/ */
+/*     /\* opacity: 100%; *\/ */
+/*     /\* transition: opacity 0.25s 0.2s ease-out; *\/ */
+/* } */
+
+.ww-task-list-context-item--final .ww-task-list-item-expansion-panel {
     /* height: auto; */
     max-height: 15em;
     transition: max-height 0.25s ease-out;
@@ -205,8 +220,9 @@ html, body {
 .ww-task-list-item-body {
     width: 95%;
     margin: 5px;
-    min-height: 1em;
+    min-height: 5em;
     padding: 2px;
+    border-left: solid 2px lightgray;
     padding-left: 10px;
     outline: solid 0px transparent;
     /* border-left: solid 1px lightgray; */
@@ -289,7 +305,7 @@ html, body {
     text-align: center;
 }
 
-.ww-task-list-item--selected .ww-task-list-item-checkbox, .ww-task-list-item-checkbox:hover {
+.ww-task-list-item-checkbox:hover {
     width: 5em;
     background: rgb( 0, 0, 255, 0.2);
     color: blue;
