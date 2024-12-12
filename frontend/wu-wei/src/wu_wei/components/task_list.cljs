@@ -116,20 +116,18 @@
 
 (defn task-creation-box
   "This is the area where users can enter text and inline-actions for new tasks."
-  [{:keys [placeholder-text]}]
+  [{:keys [placeholder-text parent-task fn-new-entity fn-update-entity]}]
   ^{:key "task-creation-box"}
   [:div.ww-task-creation-box
    {:content-editable true
     :data-ph placeholder-text
-    ;; :on-key-down #(do
-    ;;                 (js/console.log "Pressed" (.-key %))
-    ;;                 (if (= (.-key %) "Enter")
-    ;;                   (do
-    ;;                     (make-new-task-current-context
-    ;;                      {:summary (.-textContent (.-target %))})
-    ;;                     (set! (-> % .-target .-textContent) "")
-    ;;                     (.preventDefault %))))}])
-    }])
+    :on-key-down (fn [evnt]
+                    (js/console.log "Pressed" (.-key evnt))
+                    (if (= (.-key evnt) "Enter")
+                      (do
+                        (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))})
+                        (set! (-> evnt .-target .-textContent) "")
+                        (-> evnt .preventDefault))))}])
 
 (defn task-list-divider
   [section-name]
@@ -141,7 +139,11 @@
 
   `root-task-id` is the :id property of the task containing all of the
   tasks to draw in the list."
-  [{:keys [entity-cache-atom query-forms-atom context-stack-atom selected-id-atom]}]
+  [{:keys [entity-cache-atom
+           query-forms-atom
+           context-stack-atom
+           selected-id-atom
+           fn-new-entity]}]
   (let
       [context-task-ids @context-stack-atom
        context-tasks (map #(entity-cache/lookup-id @entity-cache-atom %) context-task-ids)
@@ -204,7 +206,10 @@
                       context-tasks))
 
         ;; The task creation box
-        [(task-creation-box {:placeholder-text (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")})]
+        [(task-creation-box {:placeholder-text
+                             (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
+                             :fn-new-entity
+                             fn-new-entity})]
 
         ;; The direct subtasks
         [(task-list-divider "Direct Subtasks")]
@@ -217,7 +222,8 @@
        ;; Un-Recursed Mode
        ;; - Displays all tasks
        (concat
-        [(task-creation-box {:placeholder-text "➕ New Goal"})]
+        [(task-creation-box {:placeholder-text "➕ New Goal"
+                             :fn-new-entity fn-new-entity})]
         (doall (map task-to-task-list-item
                     (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
 

@@ -43,6 +43,16 @@
         (for [id entity-ids]
           (fetch-entity! id)))))))
 
+(defn new-entity!
+  "Send an edited entity to the backend"
+  [entity]
+  (requests/backend-put
+   "/entity"
+   entity
+   (fn [status-code new-id]
+     (println "MADE NEW TASK")
+     (fetch-entity! new-id))))
+
 (fetch-all-entities!)
 
 ;;
@@ -299,7 +309,8 @@
                   [task-list {:selected-id-atom task-list-selected-entity-id-atom
                               :context-stack-atom task-list-context-stack-atom
                               :entity-cache-atom entity-cache-atom
-                              :query-forms-atom task-list-query-forms-atom}]]
+                              :query-forms-atom task-list-query-forms-atom
+                              :fn-new-entity new-entity!}]]
       :notes     [:div.ww-notes-perspective
                   [notes-menu]
                   [notes-view]])]])
