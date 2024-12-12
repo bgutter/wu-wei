@@ -117,14 +117,30 @@ html, body {
 
 .ww-task-list-context-item {
     /* background: white; */
-    background: rgb(240,240,255);
+    background: rgb(240,240,240);
     border-bottom: solid 1px lightgray;
     cursor: pointer;
+    font-size: 0.8em;
     padding: 2px;
+    margin: 0 2px 0 2px;
+    border-radius: 5px 5px 0 0;
+    border: solid 1px rgb(120,120,120);
+    border-bottom: none;
+}
+
+.ww-task-list-context-item:hover {
+    background: rgb( 240, 240, 255);
 }
 
 .ww-task-list-context-item--final {
     /* background: yellow; */
+    background: white;
+    border: solid 2px rgb(120,120,255);
+    border-radius: 5px;
+    padding: 3px;
+    margin: 2px;
+    position: relative;
+    z-index: 1000;
 }
 
 .ww-task-list-item-top-panel {
@@ -150,13 +166,13 @@ html, body {
 .ww-task-list-item-mini-panel {
     display: flex;
     padding-left: 2%;
-    max-height: 0px;
-    transition: max-height 0.25s ease-out;
+    height: 0px;
+    /* transition: max-height 0.25s ease-out; */
 }
 
 .ww-task-list-item--selected .ww-task-list-item-mini-panel {
-    max-height: 50px;
-    transition: max-height 0.25s ease-out;
+    height: auto;
+    /* transition: max-height 0.25s ease-out; */
 }
 
 .ww-task-list-item-expansion-panel {
@@ -233,7 +249,7 @@ html, body {
 .ww-task-list-item-body {
     width: 95%;
     margin: 5px;
-    min-height: 5em;
+    min-height: 1em;
     padding: 2px;
     border-left: solid 2px lightgray;
     padding-left: 10px;

@@ -21,8 +21,7 @@
                  (case display-mode
                    :context "ww-task-list-context-item"
                    :context-final "ww-task-list-context-item--final"
-                   :normal "ww-task-list-item"))
-    :style {:position "relative" :z-index 1000}}
+                   :normal "ww-task-list-item"))}
 
    [:div.ww-task-list-item-top-panel {:on-click on-select}
 
@@ -67,7 +66,7 @@
       ;; button to recurse
       [:div.ww-task-list-item-mini-button
        {:on-click on-recurse}
-       "⤵️ Edit"]
+       "⤵️ Expand"]
 
       ;; button to toggle milestone
       [:div.ww-task-list-item-mini-button
