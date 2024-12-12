@@ -35,6 +35,7 @@
     ;; Editable display of task summary line
     [:div.ww-task-list-item-summary
      {:content-editable "true"
+      :on-click (fn [evnt] (-> evnt .stopPropagation))
       ;; when enter key pressed, lose focus
       ;; :on-key-down #(do
       ;;                 (if (= (.-key %) "Enter")
@@ -155,8 +156,11 @@
                                                  (and @selected-id-atom
                                                       (= @selected-id-atom (:id task)))
                                                  :on-select
+                                                 ;; (fn []
+                                                   ;; (reset! selected-id-atom (:id task)))
                                                  (fn []
-                                                   (reset! selected-id-atom (:id task)))
+                                                   (reset! selected-id-atom nil)
+                                                   (swap! context-stack-atom conj (:id task)))
                                                  :on-modify-entity
                                                  (fn [new-value]
                                                    ;; TODO: This should send edit request to backend, NOT just edit the cache
@@ -200,7 +204,7 @@
                       context-tasks))
 
         ;; The task creation box
-        [(task-creation-box {:placeholder-text (str "New Subtask of '" (:summary (last context-tasks)) "'")})]
+        [(task-creation-box {:placeholder-text (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")})]
 
         ;; The direct subtasks
         [(task-list-divider "Direct Subtasks")]
@@ -213,7 +217,7 @@
        ;; Un-Recursed Mode
        ;; - Displays all tasks
        (concat
-        [(task-creation-box {:placeholder-text "New Goal"})]
+        [(task-creation-box {:placeholder-text "➕ New Goal"})]
         (doall (map task-to-task-list-item
                     (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
 
