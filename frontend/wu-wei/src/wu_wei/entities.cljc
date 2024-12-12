@@ -64,3 +64,21 @@
    (task? task-a)
    (task? task-b)
    (contains? (:subtask-ids task-b) (:id task-a))))
+
+(defn add-subtask
+  "Add B as a subtask to A"
+  [task-a task-b]
+  (if
+      (and
+       (task? task-a)
+       (task? task-b))
+    (merge task-a {:subtask-ids (conj (:subtask-ids task-a) (:id task-b))})))
+
+(defn add-subtask-by-id
+  "Add subtask-id as a subtask of A"
+  [task subtask-id]
+  (if
+      (task? task)
+    (merge task {:subtask-ids (into #{} (conj (:subtask-ids task) subtask-id))})))
+
+(add-subtask-by-id {:status 10 :summary "foo" :id 1} 2)

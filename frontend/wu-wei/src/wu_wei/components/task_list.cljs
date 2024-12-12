@@ -125,7 +125,9 @@
                     (js/console.log "Pressed" (.-key evnt))
                     (if (= (.-key evnt) "Enter")
                       (do
-                        (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))})
+                        (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))}
+                                       (fn [new-id]
+                                         (fn-update-entity (entities/add-subtask-by-id parent-task new-id))))
                         (set! (-> evnt .-target .-textContent) "")
                         (-> evnt .preventDefault))))}])
 
@@ -143,7 +145,8 @@
            query-forms-atom
            context-stack-atom
            selected-id-atom
-           fn-new-entity]}]
+           fn-new-entity
+           fn-update-entity]}]
   (let
       [context-task-ids @context-stack-atom
        context-tasks (map #(entity-cache/lookup-id @entity-cache-atom %) context-task-ids)
@@ -209,7 +212,11 @@
         [(task-creation-box {:placeholder-text
                              (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
                              :fn-new-entity
-                             fn-new-entity})]
+                             fn-new-entity
+                             :parent-task
+                             (entity-cache/lookup-id @entity-cache-atom (last @context-stack-atom))
+                             :fn-update-entity
+                             fn-update-entity})]
 
         ;; The direct subtasks
         [(task-list-divider "Direct Subtasks")]
@@ -223,7 +230,10 @@
        ;; - Displays all tasks
        (concat
         [(task-creation-box {:placeholder-text "➕ New Goal"
-                             :fn-new-entity fn-new-entity})]
+                             :fn-new-entity
+                             fn-new-entity
+                             :fn-update-entity
+                             fn-update-entity})]
         (doall (map task-to-task-list-item
                     (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
 
