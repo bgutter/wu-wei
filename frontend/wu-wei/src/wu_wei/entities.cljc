@@ -80,5 +80,3 @@
   (if
       (task? task)
     (merge task {:subtask-ids (into #{} (conj (:subtask-ids task) subtask-id))})))
-
-(add-subtask-by-id {:status 10 :summary "foo" :id 1} 2)

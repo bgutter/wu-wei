@@ -1,16 +1,33 @@
 (ns wu-wei.entities.caching
   (:require [wu-wei.entities :as entities]))
 
-(defn declare-exist [cache timestamp & ids-that-exist]
+(defn new-cache
+  "Create an empty cache"
+  []
+  (hash-map))
+
+(defn declare-exist
+  "Create an empty data node for a set of entity IDs. This lets the
+  cache know that some ID exists, but data has not yet been fetched for it."
+  [cache timestamp & ids-that-exist]
   (merge cache (into {} (map #(vector % {:retrieved timestamp :entity-data nil})) ids-that-exist)))
 
-(defn set-entity-data [cache timestamp id entity-data]
+(defn set-entity-data
+  "Return `cache` with new `entity-data` associated with ID `id` and given update `timestamp`"
+  [cache timestamp id entity-data]
   (merge cache {id {:retrieved timestamp :entity-data entity-data}}))
 
-(defn lookup-id [cache id]
+(defn remove-entity-data
+  "Return `cache` with data for entity id `id` removed"
+  [cache id]
+  (dissoc cache id))
+
+(defn lookup-id
+  "Retrieve entity data stored for given ID `id` in `cache`"
+  [cache id]
   (if (contains? cache id)
     (let [cache-data (get cache id)]
-      (println (str "LOOKUP(" id ") => " cache-data))
+      ;; (println (str "LOOKUP(" id ") => " cache-data))
       (:entity-data cache-data))
     nil))
 

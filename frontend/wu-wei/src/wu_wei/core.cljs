@@ -17,7 +17,7 @@
 
 (def entity-cache-atom
   "Atom containing a mapping from entity ID to cached entity data."
-  (r/atom {}))
+  (r/atom (entity-cache/new-cache)))
 
 (defn fetch-entity!
   "Update `entity-cache-atom` with details for this entity from the backend"
@@ -63,6 +63,19 @@
    entity
    (fn [status-code _]
      (fetch-entity! (:id entity)))))
+
+(defn delete-entity!
+  "Delete an entity entirely"
+  [entity-or-id]
+  (let
+      [id-to-delete (if (entities/entity? entity-or-id)
+                        (:id entity-or-id)
+                        entity-or-id)]
+  (requests/backend-delete
+   (str "/entity/" id-to-delete)
+   (fn [status-code _]
+     (if (= 200 status-code)
+       (swap! entity-cache-atom entity-cache/remove-entity-data id-to-delete))))))
 
 (fetch-all-entities!)
 
@@ -322,7 +335,8 @@
                               :entity-cache-atom entity-cache-atom
                               :query-forms-atom task-list-query-forms-atom
                               :fn-new-entity new-entity!
-                              :fn-update-entity update-entity!}]]
+                              :fn-update-entity update-entity!
+                              :fn-delete-entity delete-entity!}]]
       :notes     [:div.ww-notes-perspective
                   [notes-menu]
                   [notes-view]])]])

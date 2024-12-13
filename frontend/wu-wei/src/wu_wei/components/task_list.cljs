@@ -13,7 +13,7 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [t {:keys [is-selected? on-select on-recurse display-mode on-modify-entity]}]
+  [t {:keys [is-selected? on-select on-recurse display-mode on-modify-entity fn-delete-entity]}]
   ^{:key (task-box-keygen t)}
   [:div
 
@@ -93,8 +93,10 @@
      [:div.ww-task-list-item-mini-button "Due: November 11th"]
      [:div.ww-task-list-item-mini-button "Owner: Samantha"]
      [:div.ww-task-list-item-mini-button "Effort: 3D"]
-     (if (not (:subtask-ids t))
-       [:div.ww-task-list-item-mini-button "Add Subtask"])
+     [:div.ww-task-list-item-mini-button
+      {:on-click fn-delete-entity}
+      "🗑️ Archive"
+      ]
      [:div.ww-flexbox-spacer]]
 
     ;; (if (not (empty? (:subtask-ids t)))
@@ -146,7 +148,9 @@
            context-stack-atom
            selected-id-atom
            fn-new-entity
-           fn-update-entity]}]
+           fn-update-entity
+           fn-delete-entity]}]
+  (println "Making task-list")
   (let
       [context-task-ids @context-stack-atom
        context-tasks (map #(entity-cache/lookup-id @entity-cache-atom %) context-task-ids)
@@ -173,7 +177,9 @@
                                                  :on-recurse
                                                  (fn []
                                                    (reset! selected-id-atom nil)
-                                                   (swap! context-stack-atom conj (:id task)))}))]
+                                                   (swap! context-stack-atom conj (:id task)))
+                                                 :fn-delete-entity
+                                                 fn-delete-entity}))]
     [(r/adapt-react-class js/FlipMove)
      {:class "ww-task-list"
       :easing "ease-out"
@@ -205,7 +211,11 @@
                                            (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
                                          :on-select
                                          (fn []
-                                           (swap! context-stack-atom subvec 0 (inc context-index)))}))
+                                           (swap! context-stack-atom subvec 0 (inc context-index)))
+                                         :fn-delete-entity
+                                         (fn []
+                                           (swap! context-stack-atom subvec 0 context-index)
+                                           (fn-delete-entity (:id task)))}))
                       context-tasks))
 
         ;; The task creation box

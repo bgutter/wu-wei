@@ -39,6 +39,11 @@
   [endpoint cb]
   (backend-request http/get endpoint nil cb))
 
+(defn backend-delete
+  "DELETE on the backend -- given an endpoint and a callback."
+  [endpoint cb]
+  (backend-request http/delete endpoint nil cb))
+
 (defn backend-patch
   "PATCH on the backend -- given an endpoint, EDN body, and a callback."
   [endpoint body cb]

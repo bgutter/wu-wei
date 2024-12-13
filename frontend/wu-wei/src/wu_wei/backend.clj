@@ -1,6 +1,6 @@
 (ns wu-wei.backend
   (:require
-   [compojure.core :refer [defroutes GET PATCH PUT POST]]
+   [compojure.core :refer [defroutes GET PATCH PUT POST DELETE]]
    [compojure.coercions :refer [as-int]]
    [compojure.route :as route]
    [clojure.data.json :as json]
@@ -64,6 +64,10 @@
     (swap! entity-table assoc id new-entity)
     new-entity))
 
+(defn delete-entity!
+  [id]
+  (swap! entity-table dissoc id))
+
 (defn filter-entities
   ""
   [query-forms]
@@ -98,7 +102,11 @@
   ;; POST /search-entities with predicate vector as EDN in body
 
   (GET "/entity/:id" [id :<< as-int]
-     (edn-response 200 (entity-by-id id)))
+    (edn-response 200 (entity-by-id id)))
+
+  (DELETE "/entity/:id" [id :<< as-int]
+    (delete-entity! id)
+    (edn-response 200 nil))
 
   (POST "/search-entities" request
      (let [query-forms (edn-from-request request)]
