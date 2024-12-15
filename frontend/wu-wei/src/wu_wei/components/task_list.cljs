@@ -156,7 +156,6 @@
   tasks to draw in the list."
   [{:keys [entity-cache-atom
            query-forms-atom
-           context-stack-atom
            selected-id-atom
            fn-new-entity
            fn-update-entity
@@ -164,125 +163,100 @@
   (println "Making task-list")
   (let
       [entity-cache-state @entity-cache-atom
-       context-task-ids @context-stack-atom
-       context-tasks (map #(entity-cache/lookup-id entity-cache-state %) context-task-ids)
-       direct-subtasks (entity-cache/query entity-cache-state [:subtask-of? (:id (last context-tasks))])
-       indirect-subtasks (entity-cache/query entity-cache-state [:and
-                                                                 [:descendent-of? (:id (last context-tasks))]
-                                                                 [:not [:subtask-of? (:id (last context-tasks))]]])
-       task-to-task-list-item (fn [task]
-                                (task-list-item task entity-cache-state
-                                                {:display-mode :normal
-                                                 :is-selected?
-                                                 (and @selected-id-atom
-                                                      (= @selected-id-atom (:id task)))
-                                                 :on-select
-                                                 ;; (fn []
-                                                   ;; (reset! selected-id-atom (:id task)))
-                                                 (fn []
-                                                   (reset! selected-id-atom nil)
-                                                   (swap! context-stack-atom conj (:id task)))
-                                                 :on-modify-entity
-                                                 (fn [new-value]
-                                                   ;; TODO: This should send edit request to backend, NOT just edit the cache
-                                                   (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
-                                                 :on-recurse
-                                                 (fn []
-                                                   (reset! selected-id-atom nil)
-                                                   (swap! context-stack-atom conj (:id task)))
-                                                 :fn-delete-entity
-                                                 fn-delete-entity}))]
-    [(r/adapt-react-class js/FlipMove)
-     {:class "ww-task-list"
-      :easing "ease-out"
-      :appear-animation nil
-      :enter-animation "fade"
-      :leave-animation "fade"
-      ;; :duration 5000
-      }
-     (if (seq context-tasks)
+       selected-task-id @selected-id-atom
+       mk-task-list-item
+       (fn [task]
+         (task-list-item task entity-cache-state
+                         {:display-mode :normal
+                          :is-selected? false ;; no longer used
+                          :on-select
+                          (fn []
+                            (reset! selected-id-atom (:id task)))
+                          :on-modify-entity
+                          (fn [new-value]
+                            ;; TODO: This should send edit request to backend, NOT just edit the cache
+                            (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
+                          :on-recurse
+                          (fn []
+                            (reset! selected-id-atom (:id task)))
+                          :fn-delete-entity
+                          fn-delete-entity}))]
 
-       ;; Recursed mode
+    ;;
+    ;; The components
+    ;;
+    [(r/adapt-react-class js/FlipMove)
+         {:class "ww-task-list"
+          :easing "ease-out"
+          :appear-animation nil
+          :enter-animation "fade"
+          :leave-animation "fade"
+          ;; :duration 5000
+          }
+     (if selected-task-id
+       ;; Contents With Context Mode
        ;; - Shows 3 sections of tasks:
        ;;   - Context stack
        ;;   - direct subtasks
        ;;   - indirect subtasks
-       (concat
+       (let
+           [selected-task     (entity-cache/lookup-id entity-cache-state selected-task-id)
+            ancestry-ids      (entity-cache/task-ancestry-ids entity-cache-state selected-task)
+            context-task-ids  (reverse (conj (reverse ancestry-ids) selected-task-id))
+            context-tasks     (map #(entity-cache/lookup-id entity-cache-state %) context-task-ids)
+            direct-subtasks   (entity-cache/query entity-cache-state [:subtask-of? (:id (last context-tasks))])
+            indirect-subtasks (entity-cache/query entity-cache-state [:and
+                                                                      [:descendent-of? (:id (last context-tasks))]
+                                                                      [:not [:subtask-of? (:id (last context-tasks))]]])]
+         (println "CONTEXT: " context-task-ids)
+         (concat
 
-        ;; The context stack
-        (doall
-         (map-indexed (fn [context-index task]
-                        (task-list-item task entity-cache-state
-                                        {:display-mode
-                                         (if (= context-index (dec (count context-tasks)))
-                                           :context-final
-                                           :context)
-                                         :on-modify-entity
-                                         (fn [new-value]
-                                           ;; TODO: This should send edit request to backend, NOT just edit the cache
-                                           (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
-                                         :on-select
-                                         (fn []
-                                           (swap! context-stack-atom subvec 0 (inc context-index)))
-                                         :fn-delete-entity
-                                         (fn []
-                                           (swap! context-stack-atom subvec 0 context-index)
-                                           (fn-delete-entity (:id task)))}))
-                      context-tasks))
+          ;; The context stack
+          (doall
+           (map-indexed (fn [context-index task]
+                          (task-list-item task entity-cache-state
+                                          {:display-mode
+                                           (if (= context-index (dec (count context-tasks)))
+                                             :context-final
+                                             :context)
+                                           :on-modify-entity
+                                           (fn [new-value]
+                                             ;; TODO: This should send edit request to backend, NOT just edit the cache
+                                             (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
+                                           :on-select
+                                           (fn []
+                                             (reset! selected-id-atom (:id task)))
+                                           :fn-delete-entity
+                                           (fn []
+                                             (reset! selected-id-atom (:id task))
+                                             (fn-delete-entity (:id task)))}))
+                        context-tasks))
 
-        ;; The task creation box
-        [(task-creation-box {:placeholder-text
-                             (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
-                             :fn-new-entity
-                             fn-new-entity
-                             :parent-task
-                             (entity-cache/lookup-id @entity-cache-atom (last @context-stack-atom))
-                             :fn-update-entity
-                             fn-update-entity})]
+          ;; The task creation box
+          [(task-creation-box {:placeholder-text
+                               (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
+                               :fn-new-entity
+                               fn-new-entity
+                               :parent-task
+                               (entity-cache/lookup-id entity-cache-state selected-task-id)
+                               :fn-update-entity
+                               fn-update-entity})]
 
-        ;; The direct subtasks
-        [(task-list-divider "Direct Subtasks")]
-        (doall (map task-to-task-list-item direct-subtasks))
+          ;; The direct subtasks
+          [(task-list-divider "Direct Subtasks")]
+          (doall (map mk-task-list-item direct-subtasks))
 
-        ;; The indirect subtasks
-        [(task-list-divider "Indirect Subtasks")]
-        (doall (map task-to-task-list-item indirect-subtasks)))
+          ;; The indirect subtasks
+          [(task-list-divider "Indirect Subtasks")]
+          (doall (map mk-task-list-item indirect-subtasks))))
 
        ;; Un-Recursed Mode
        ;; - Displays all tasks
-       (concat
-        [(task-creation-box {:placeholder-text "➕ New Goal"
-                             :fn-new-entity
-                             fn-new-entity
-                             :fn-update-entity
-                             fn-update-entity})]
-        (doall (map task-to-task-list-item
-                    (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
-
-    ;;   [context-stack-items @context-stack
-    ;;    recursed-into-task  (seq context-stack-items)
-    ;;    task-query-forms    (cond
-    ;;                         recursed-into-task [:subtask-of? (:id (last context-stack-items))]
-    ;;                         (not (nil? @selected-list-id)) :task? ;; TODO
-    ;;                         :default :task?)
-    ;;    tasks            (query-entities task-query-forms)]
-    ;; [(r/adapt-react-class js/FlipMove) {:class "ww-task-list"
-    ;;                                     :appear-animation nil
-    ;;                                     :enter-animation "fade"
-    ;;                                     :leave-animation "fade"
-    ;;                                     :duration 350} ;; debug
-    ;;  (concat
-    ;;   (task-list-context-stack context-stack)
-    ;;   (when recursed-into-task
-    ;;     ^{:key "direct-subtask-separator"}
-    ;;    [[:div.ww-task-list-context-separator
-    ;;       "Direct Subtasks"]])
-    ;;  [(task-creation-box)]
-    ;;  (doall (for [t (sort-by #(* -1 (js/parseInt (:id %))) tasks)]
-    ;;           (let [make-eid (fn [kind] (str "task-list-item-" kind ":" (:id t)))
-    ;;                 context  {:task                t
-    ;;                           :item-eid            (make-eid "item")
-    ;;                           :top-panel-eid       (make-eid "top-panel")
-    ;;                           :summary-eid         (make-eid "summary")
-    ;;                           :expansion-panel-eid (make-eid "expansion-panel")}]
-    ;;             (task-list-item t context)))))]))
+         (concat
+          [(task-creation-box {:placeholder-text "➕ New Goal"
+                               :fn-new-entity
+                               fn-new-entity
+                               :fn-update-entity
+                               fn-update-entity})]
+          (doall (map mk-task-list-item
+                      (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
