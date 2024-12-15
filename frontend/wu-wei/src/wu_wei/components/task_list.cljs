@@ -173,9 +173,7 @@
                           (fn []
                             (reset! selected-id-atom (:id task)))
                           :on-modify-entity
-                          (fn [new-value]
-                            ;; TODO: This should send edit request to backend, NOT just edit the cache
-                            (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
+                          fn-update-entity
                           :on-recurse
                           (fn []
                             (reset! selected-id-atom (:id task)))
@@ -220,9 +218,7 @@
                                              :context-final
                                              :context)
                                            :on-modify-entity
-                                           (fn [new-value]
-                                             ;; TODO: This should send edit request to backend, NOT just edit the cache
-                                             (swap! entity-cache-atom entity-cache/set-entity-data (util/ts-now) (:id task) new-value))
+                                           fn-update-entity
                                            :on-select
                                            (fn []
                                              (reset! selected-id-atom (:id task)))
