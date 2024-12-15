@@ -57,6 +57,11 @@
 ;; Task Objects
 ;;
 
+(defn set-summary
+  [entity new-summary]
+  ;; expect encoding, formatting, checking, etc
+  (merge entity {:summary new-summary}))
+
 (defn subtask?
   "Is first task a subtask of the other?"
   [task-a task-b]

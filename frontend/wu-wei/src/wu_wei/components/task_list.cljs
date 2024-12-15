@@ -9,122 +9,102 @@
             [wu-wei.entities.caching :as entity-cache]
             [cljsjs.react-flip-move]))
 
-(defn task-box-keygen [task]
-  (str "key-task-box-" (:id task)))
+(defn task-box-keygen [task-id]
+  (str "key-task-box-" task-id))
 
 (defn task-list-item
   "An individual item within the task-list"
-  [t cache {:keys [is-selected? on-select on-recurse display-mode on-modify-entity fn-delete-entity]}]
-  ^{:key (task-box-keygen t)}
-  [:div
-
-   {:class (list (if is-selected? "ww-task-list-item--selected")
-                 (case display-mode
-                   :context "ww-task-list-context-item"
-                   :context-final "ww-task-list-context-item--final"
-                   :normal "ww-task-list-item"))}
-
-   [:div.ww-task-list-item-top-panel {:on-click on-select}
-
-    ;; Checkbox or recursion icon depending on display mode
-    (if (some #{display-mode} [:context :context-final])
+  [this-task-id entity-cache-atom selected-id-atom
+   {:keys [on-select on-recurse on-modify-entity fn-delete-entity]}]
+  (let
+      [is-summary-edited-atom (r/atom false)]
+    (fn []
+      (let
+          [cache                 @entity-cache-atom
+           selected-id           @selected-id-atom
+           selected-task         (entity-cache/lookup-id cache selected-id)
+           selected-ancestry-ids (entity-cache/task-ancestry-ids cache selected-task)
+           t                     (entity-cache/lookup-id cache this-task-id)
+           display-mode          (if (nil? selected-id)
+                                   :normal
+                                   (if (= selected-id this-task-id)
+                                     :context-final
+                                     (if (some #(= this-task-id %) selected-ancestry-ids)
+                                       :context
+                                       :normal)))]
       [:div
-       (str "⤵️ ")]
-      [:div.ww-task-list-item-checkbox
-       "OPEN"])
+       {:class (list (case display-mode
+                       :context "ww-task-list-context-item"
+                       :context-final "ww-task-list-context-item--final"
+                       :normal "ww-task-list-item"))}
 
-    ;; Editable display of task summary line
-    [:div.ww-task-list-item-summary
-     {:content-editable "true"
-      :on-click (fn [evnt] (-> evnt .stopPropagation))
-      ;; when enter key pressed, lose focus
-      ;; :on-key-down #(do
-      ;;                 (if (= (.-key %) "Enter")
-      ;;                   (.blur (.-target %))
-      ;;                   (reset! task-list-selected-task-item-summary-edited true)))
-      ;; ;; when exiting focus, apply changes
-      ;; :on-blur #(do
-      ;;             (on-task-summary-edit-completed context)
-      ;;             (update-task {:id (:id t) :summary (.-textContent (.-target %))})
-      ;;             (reset! task-list-selected-task-item-summary-edited false)
-      ;;             ;; (unexpand-task-list-item-expansion-panel (:expansion-panel-eid context))
-      ;;             )}
-      }
-     (:summary t)]
+       [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)}
 
-    ;; Show ancestry
-    [:div.ww-task-list-item-ancestry
-     (let [ancestry-ids (entity-cache/task-ancestry-ids cache t)]
-       (if (empty? ancestry-ids)
-         ""
-         (str
-          (str/join " > " (map (comp :summary (partial entity-cache/lookup-id cache)) ancestry-ids))
-          )))]
+        ;; Checkbox or recursion icon depending on display mode
+        (if (some #{display-mode} [:context :context-final])
+          [:div
+           (str "⤵️ ")]
+          [:div.ww-task-list-item-checkbox
+           "OPEN"])
 
-    ;; Marker for normal display items representing tasks with subtasks
-    (if (and (seq (:subtask-ids t)) (= display-mode :normal))
-      [:div
-       "+"])
+        ;; Editable display of task summary line
+        [:div.ww-task-list-item-summary
+         {:content-editable "true"
+          :on-click (fn [evnt] (-> evnt .stopPropagation))
+          ;; when enter key pressed, lose focus
+          :on-key-down #(when (= (.-key %) "Enter")
+                          (reset! is-summary-edited-atom true)
+                          (.blur (.-target %)))
+          ;; when exiting focus, apply changes
+          :on-blur (fn [event & _]
+                     (on-modify-entity (entities/set-summary t (.-textContent (.-target event)))))}
+         (:summary t)]
 
-    ;; numeric field at end of item
-    ;; for dev purposes, just shows ID if item for now
-    [:div.ww-task-list-item-time-til-due (:id t)]]
+        ;; Show ancestry
+        [:div.ww-task-list-item-ancestry
+         (let [ancestry-ids (entity-cache/task-ancestry-ids cache t)]
+           (if (empty? ancestry-ids)
+             ""
+             (str
+              (str/join " > " (map (comp :summary (partial entity-cache/lookup-id cache)) ancestry-ids))
+              )))]
 
-   ;; mini panel
-   (if (= display-mode :normal)
-     [:div.ww-task-list-item-mini-panel
+        ;; Marker for normal display items representing tasks with subtasks
+        (if (and (seq (:subtask-ids t)) (= display-mode :normal))
+          [:div
+           "+"])
 
-      ;; button to recurse
-      [:div.ww-task-list-item-mini-button
-       {:on-click on-recurse}
-       "⤵️ Expand"]
+        ;; numeric field at end of item
+        ;; for dev purposes, just shows ID if item for now
+        [:div.ww-task-list-item-time-til-due (:id t)]]
 
-      ;; button to toggle milestone
-      [:div.ww-task-list-item-mini-button
-       {:class (if (entities/milestone? t) "ww-task-list-item-mini-button--selected")
-        :on-click #(on-modify-entity (entities/toggle-milestone t))}
-       (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]])
+       ;; The Expansion Panel
+       [:div.ww-task-list-item-expansion-panel
 
-   ;; The Expansion Panel
-   [:div.ww-task-list-item-expansion-panel
+        ;; Expansion Panel: Text field for showing and editing the body field
+        [:div.ww-task-list-item-body
+         {:content-editable "true"
+          :data-ph "Enter a description..."}]
 
-    ;; Expansion Panel: Text field for showing and editing the body field
-    [:div.ww-task-list-item-body
-     {:content-editable "true"
-      :data-ph "Enter a description..."}]
-
-    ;; Expansion Panel: Bottom Panel
-    [:div.ww-task-list-item-bottom-panel
-     [:div.ww-task-list-item-mini-button
-      {:class (if (entities/milestone? t) "ww-task-list-item-mini-button--selected")
-        :on-click #(on-modify-entity (entities/toggle-milestone t))}
-      (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]
-     [:div.ww-task-list-item-mini-button "Start: November 2nd"]
-     [:div.ww-task-list-item-mini-button "Due: November 11th"]
-     [:div.ww-task-list-item-mini-button "Owner: Samantha"]
-     [:div.ww-task-list-item-mini-button "Effort: 3D"]
-     [:div.ww-task-list-item-mini-button
-      {:on-click fn-delete-entity}
-      "🗑️ Archive"
-      ]
-     [:div.ww-flexbox-spacer]]
-
-    ;; (if (not (empty? (:subtask-ids t)))
-    ;;   [:div.ww-task-list-expansion-panel-section-header-div "⋮⋮⋮ SUBTASKS"])
-
-      ;; [:div.ww-task-list-item-subtasks-panel
-      ;;  (if (:subtask-ids t)
-      ;;    [:div.ww-task-list-item-subtasks-blurb "➕ Add"])
-      ;;  ;; (if (seq (:subtask-ids t))
-      ;;    [:div.ww-task-list-item-mini-button
-      ;;     ;; {:on-click #(recurse-into-task t)}
-      ;;     "⤵️ Recurse"]
-      ;;  (doall
-      ;;   (for [subtask-id (:subtask-ids t)]
-      ;;     (let [subtask (get @entity-cache subtask-id)]
-      ;;       [:div.ww-task-list-item-subtasks-blurb
-      ;;        (str " ▢ " (:summary subtask))])))]
-      ]])
+        ;; Expansion Panel: Bottom Panel
+        [:div.ww-task-list-item-bottom-panel
+         [:div.ww-task-list-item-mini-button
+          {:class (if (entities/milestone? t) "ww-task-list-item-mini-button--selected")
+           :on-click #(on-modify-entity (entities/toggle-milestone t))}
+          (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]
+         [:div.ww-task-list-item-mini-button "Start: November 2nd"]
+         [:div.ww-task-list-item-mini-button "Due: November 11th"]
+         [:div.ww-task-list-item-mini-button "Owner: Samantha"]
+         [:div.ww-task-list-item-mini-button "Effort: 3D"]
+         [:div.ww-task-list-item-mini-button
+          {:on-click (fn []
+                       (if (= this-task-id @selected-id-atom)
+                         (let [parent-id (entity-cache/parent-task-id cache t)]
+                           (reset! selected-id-atom parent-id)))
+                       (fn-delete-entity this-task-id))}
+          "🗑️ Archive"
+          ]
+         [:div.ww-flexbox-spacer]]]]))))
 
 (defn task-creation-box
   "This is the area where users can enter text and inline-actions for new tasks."
@@ -164,28 +144,14 @@
   (let
       [entity-cache-state @entity-cache-atom
        selected-task-id @selected-id-atom
-       mk-task-list-item
-       (fn [task {:keys [display-mode]}]
-         (task-list-item task entity-cache-state
-                         {:display-mode
-                          display-mode
-
-                          :is-selected?
-                          false ;; no longer used
-
-                          :on-select
-                          (fn []
-                            (reset! selected-id-atom (:id task)))
-
-                          :on-modify-entity
-                          fn-update-entity
-
-                          :on-recurse
-                          (fn []
-                            (reset! selected-id-atom (:id task)))
-
-                          :fn-delete-entity
-                          fn-delete-entity}))]
+       task-list-item-callbacks {:on-modify-entity
+                                 fn-update-entity
+                                 :fn-delete-entity
+                                 fn-delete-entity}]
+       ;; mk-task-list-item
+       ;; (fn [task]
+         ;; [task-list-item (:id task) entity-cache-atom selected-id-atom
+                         ;; ])]
 
     ;;
     ;; The components
@@ -218,12 +184,9 @@
 
           ;; The context stack
           (doall
-           (map-indexed (fn [context-index task]
-                          (mk-task-list-item task {:display-mode
-                                                   (if (= context-index (dec (count context-tasks)))
-                                                     :context-final
-                                                     :context)}))
-                          context-tasks))
+           (for [task context-tasks]
+             ^{:key (task-box-keygen (:id task))}
+             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
 
           ;; The task creation box
           [(task-creation-box {:placeholder-text
@@ -237,20 +200,28 @@
 
           ;; The direct subtasks
           [(task-list-divider "Direct Subtasks")]
-          (doall (map #(mk-task-list-item % {:display-mode :normal}) direct-subtasks))
+          (doall
+           (for [task direct-subtasks]
+             ^{:key (task-box-keygen (:id task))}
+             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
 
           ;; The indirect subtasks
           [(task-list-divider "Indirect Subtasks")]
-          (doall (map #(mk-task-list-item % {:display-mode :normal}) indirect-subtasks))))
+          (doall
+           (for [task indirect-subtasks]
+             ^{:key (task-box-keygen (:id task))}
+             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))))
 
        ;; Un-Recursed Mode
        ;; - Displays all tasks
          (concat
-          [(task-creation-box {:placeholder-text "➕ New Goal"
+          [(task-creation-box {:placeholder-text
+                               "➕ New Goal"
                                :fn-new-entity
                                fn-new-entity
                                :fn-update-entity
                                fn-update-entity})]
-          (doall (map #(mk-task-list-item % {:display-mode :normal})
-                      (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))
-                      ))))]))
+          (doall
+           (for [task (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))]
+             ^{:key (task-box-keygen (:id task))}
+             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))))]))

@@ -157,7 +157,7 @@
     {:on-select (fn []
                   (reset! task-list-selected-entity-id-atom nil)
                   (reset! task-list-query-forms-atom :milestone?))}]
-  [list-menu-entry { :summary "Hide Subtasks" :icon "🎯" }
+  [list-menu-entry { :summary "Top-Level Tasks" :icon "🎯" }
     {:on-select (fn []
                   (reset! task-list-selected-entity-id-atom nil)
                   (reset! task-list-query-forms-atom [:not :subtask?]))}]])
