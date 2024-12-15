@@ -166,21 +166,26 @@
                                   (throw (ex-info msg {})))
        always-false             (fn [& _] false)
        always-true              (fn [& _] true)
-       require-all-recursions   (fn [ent args]
+       require-all-recursions   (fn [cache ent args]
                                   (every? identity (map (fn [func] (func ent))
                                                         (map #(compile-query cache %) args))))
-       require-any-recursion    (fn [ent args]
+       require-any-recursion    (fn [cache ent args]
                                   (some identity (map (fn [func] (func ent))
                                                       (map #(compile-query cache %) args))))
-       logical-not              (fn [ent args]
+       logical-not              (fn [cache ent args]
                                   (not-any? identity (map (fn [func] (func ent))
                                                           (map #(compile-query cache %) args))))
-       check-occur-before       (fn [ent args] (apply entities/event-occurs-before? ent args))
-       check-is-subtask-of      (fn [ent args] (entities/subtask? ent (lookup-id cache (first args))))
-       check-is-descendent-of   (fn [ent args] (descendent-task? cache ent (lookup-id cache (first args))))
-       keyword-predicate-map    {:task? #'entities/task?
-                                 :event? #'entities/event?
-                                 :milestone? #'entities/milestone?
+       check-occur-before       (fn [cache ent args] (apply entities/event-occurs-before? ent args))
+       check-is-subtask-of      (fn [cache ent args] (entities/subtask? ent (lookup-id cache (first args))))
+       check-is-descendent-of   (fn [cache ent args] (descendent-task? cache ent (lookup-id cache (first args))))
+       check-is-subtask         (fn [cache ent] (not (nil? (parent-task-id cache ent))))
+       check-is-task            (fn [cache ent] (entities/task? ent))
+       check-is-event           (fn [cache ent] (entities/event? ent))
+       check-is-milestone       (fn [cache ent] (entities/milestone? ent))
+       keyword-predicate-map    {:task? check-is-task
+                                 :event? check-is-event
+                                 :milestone? check-is-milestone
+                                 :subtask? check-is-subtask
                                  ;; :part-of-milestone? #(boolean (seq (milestones-upstream-of-task (lookup-entity-fn %))))
                                  :true always-true
                                  :false always-false}
@@ -193,9 +198,9 @@
     (fn apply-filter [entity]
       (cond
         (keyword? query-forms)
-          ((get keyword-predicate-map query-forms always-false) entity)
+          ((get keyword-predicate-map query-forms always-false) cache entity)
         (and (vector? query-forms) (keyword? (first query-forms)))
-          ((get expression-predicate-map (first query-forms) always-false) entity (rest query-forms))
+          ((get expression-predicate-map (first query-forms) always-false) cache entity (rest query-forms))
         :default
           (parse-error (str "Illegal entity filter: " query-forms))))))
 

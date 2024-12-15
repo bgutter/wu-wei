@@ -129,7 +129,7 @@
    ;; {:class (if (= @selected-list-id (:id milestone)) "ww-list-menu-entry--selected" "")
     ;; :on-click #(select-list-id (:id milestone))}
    ;; [:p.ww-list-menu-entry-icon (or (:icon milestone) "X")]
-   [:p.ww-list-menu-entry-title (:summary milestone)]
+   [:p.ww-list-menu-entry-title (:icon milestone) " " (:summary milestone)]
    [:p.ww-flexbox-spacer]
    [:p.ww-list-menu-entry-count (:id milestone)]])
 
@@ -149,14 +149,18 @@
   []
   [:div.ww-list-menu-section
    [:div.ww-list-menu-section-title "Filters"]
-   [list-menu-entry { :summary "Inbox" :icon "📥" }
-    {:on-select (fn []
-                  (reset! task-list-selected-entity-id-atom nil)
-                  (reset! task-list-query-forms-atom :milestone?))}]
    [list-menu-entry { :summary "All Tasks" :icon "🌎" }
     {:on-select (fn []
                   (reset! task-list-selected-entity-id-atom nil)
-                  (reset! task-list-query-forms-atom :true))}]])
+                  (reset! task-list-query-forms-atom :true))}]
+   [list-menu-entry { :summary "Milestones" :icon "📥" }
+    {:on-select (fn []
+                  (reset! task-list-selected-entity-id-atom nil)
+                  (reset! task-list-query-forms-atom :milestone?))}]
+  [list-menu-entry { :summary "Hide Subtasks" :icon "🎯" }
+    {:on-select (fn []
+                  (reset! task-list-selected-entity-id-atom nil)
+                  (reset! task-list-query-forms-atom [:not :subtask?]))}]])
 
 (defn list-menu-tags-section
   ""
