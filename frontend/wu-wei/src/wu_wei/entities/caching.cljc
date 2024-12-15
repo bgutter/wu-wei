@@ -25,7 +25,8 @@
 (defn remove-entity-data
   "Return `cache` with data for entity id `id` removed"
   [cache id]
-  (update cache :entity-records dissoc id))
+  (let [updated-cache (update cache :entity-records dissoc id)]
+    (update-task-graph-cache updated-cache id)))
 
 (defn lookup-id
   "Retrieve entity data stored for given ID `id` in `cache`"
@@ -47,21 +48,33 @@
   (let [task-graph-cache (:task-graph-cache cache)
         entity-records   (:entity-records cache)]
     (merge cache {:task-graph-cache
-                  (reduce (fn [tgc-in-progress [_ entity-record]]
-                            ;; (println "||" tgc-in-progress _ entity-record)
-                            (let [entity-data (:entity-data entity-record)]
-                              ;; Check to see if this entity has any relation to the modified ID
-                              (cond
-                                (contains? (:subtask-ids entity-data) modified-id)
-                                (merge tgc-in-progress {modified-id {:parent-id (:id entity-data)}})
 
-                                (contains? (:subtask-ids (lookup-id cache modified-id)) (:id entity-data))
-                                (merge tgc-in-progress {(:id entity-data) {:parent-id modified-id}})
+                  (if (contains? entity-records modified-id)
 
-                                true
-                                tgc-in-progress)))
-                          task-graph-cache
-                          entity-records)})))
+                    ;; modified-id still exists
+                    ;; check every entity to see if it references the modified ID
+                    (reduce (fn [tgc-in-progress [_ entity-record]]
+                              (let [entity-data (:entity-data entity-record)]
+                                ;; Check to see if this entity has any relation to the modified ID
+                                (cond
+                                  (contains? (:subtask-ids entity-data) modified-id)
+                                  (merge tgc-in-progress {modified-id {:parent-id (:id entity-data)}})
+
+                                  (contains? (:subtask-ids (lookup-id cache modified-id)) (:id entity-data))
+                                  (merge tgc-in-progress {(:id entity-data) {:parent-id modified-id}})
+
+                                  true
+                                  tgc-in-progress)))
+
+                            task-graph-cache
+                            entity-records)
+
+                    ;; modified-id is a deleted id
+                    ;; delete cache items that reference it
+                    (into {} (filter (fn [[id-key cache-info]]
+                              (and (not (= id-key modified-id))
+                                   (not (= (:parent-id cache-info) modified-id))))
+                                     task-graph-cache)))})))
 ;; TODO where should this live?
 
 (defn downstream-tasks
