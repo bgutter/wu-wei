@@ -165,18 +165,25 @@
       [entity-cache-state @entity-cache-atom
        selected-task-id @selected-id-atom
        mk-task-list-item
-       (fn [task]
+       (fn [task {:keys [display-mode]}]
          (task-list-item task entity-cache-state
-                         {:display-mode :normal
-                          :is-selected? false ;; no longer used
+                         {:display-mode
+                          display-mode
+
+                          :is-selected?
+                          false ;; no longer used
+
                           :on-select
                           (fn []
                             (reset! selected-id-atom (:id task)))
+
                           :on-modify-entity
                           fn-update-entity
+
                           :on-recurse
                           (fn []
                             (reset! selected-id-atom (:id task)))
+
                           :fn-delete-entity
                           fn-delete-entity}))]
 
@@ -212,21 +219,11 @@
           ;; The context stack
           (doall
            (map-indexed (fn [context-index task]
-                          (task-list-item task entity-cache-state
-                                          {:display-mode
-                                           (if (= context-index (dec (count context-tasks)))
-                                             :context-final
-                                             :context)
-                                           :on-modify-entity
-                                           fn-update-entity
-                                           :on-select
-                                           (fn []
-                                             (reset! selected-id-atom (:id task)))
-                                           :fn-delete-entity
-                                           (fn []
-                                             (reset! selected-id-atom (:id task))
-                                             (fn-delete-entity (:id task)))}))
-                        context-tasks))
+                          (mk-task-list-item task {:display-mode
+                                                   (if (= context-index (dec (count context-tasks)))
+                                                     :context-final
+                                                     :context)}))
+                          context-tasks))
 
           ;; The task creation box
           [(task-creation-box {:placeholder-text
@@ -240,11 +237,11 @@
 
           ;; The direct subtasks
           [(task-list-divider "Direct Subtasks")]
-          (doall (map mk-task-list-item direct-subtasks))
+          (doall (map #(mk-task-list-item % {:display-mode :normal}) direct-subtasks))
 
           ;; The indirect subtasks
           [(task-list-divider "Indirect Subtasks")]
-          (doall (map mk-task-list-item indirect-subtasks))))
+          (doall (map #(mk-task-list-item % {:display-mode :normal}) indirect-subtasks))))
 
        ;; Un-Recursed Mode
        ;; - Displays all tasks
@@ -254,5 +251,6 @@
                                fn-new-entity
                                :fn-update-entity
                                fn-update-entity})]
-          (doall (map mk-task-list-item
-                      (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))))))]))
+          (doall (map #(mk-task-list-item % {:display-mode :normal})
+                      (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))
+                      ))))]))
