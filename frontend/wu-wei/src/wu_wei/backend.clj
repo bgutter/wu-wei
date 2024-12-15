@@ -4,19 +4,18 @@
    [compojure.coercions :refer [as-int]]
    [compojure.route :as route]
    [clojure.data.json :as json]
-   [wu-wei.entities :as entities]))
+   [wu-wei.entities :as entities]
+   [wu-wei.entities.caching :as entity-cache]))
 
-(def entity-table
-  "Atom containing a map of entity-id to entity."
-  (atom {}))
+(def entity-cache-atom (atom (entity-cache/new-cache)))
 
 (def app-data-path
   "Where entity data will be stored as an EDN.
   This will be deprecated soon -- we're going to graduate to a database eventually."
   (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
 
-(add-watch entity-table
-           :update-disk-for-entity-table
+(add-watch entity-cache-atom
+           :update-disk-for-entity-cache-atom
            (fn [key atom old-state new-state]
              (let [edn-data (with-out-str (clojure.pprint/pprint new-state))]
                (with-open [writer (clojure.java.io/writer app-data-path)]
@@ -26,53 +25,36 @@
   "Load all backend state from `app-data-path'"
   []
   (let
-      [entities (clojure.edn/read-string (slurp app-data-path))]
-    (reset! entity-table entities)))
+      [entities-cache (clojure.edn/read-string (slurp app-data-path))]
+    (reset! entity-cache-atom entities-cache)))
 
 ;; Read all app data before continuing
 (read-entities-from-disk)
 
-(defn entity-by-id
-  [id]
-  (get @entity-table id))
-
 (defn next-free-id []
-  (inc (apply max (filter some? (keys @entity-table)))))
+  (let [existing-keys (entity-cache/all-ids @entity-cache-atom)]
+    (if (seq existing-keys)
+      (inc (apply max existing-keys))
+      0)))
 
-(defn entity-by-id
-  "Get entity matching ID."
-  [id]
-  (get @entity-table id))
-
-(defn update-entity
-  "Update fields for a given task.
-  Task partial data must include :id."
-  [partial-entity]
-  (let
-      [id (:id partial-entity)
-       orig-entity (entity-by-id id)
-       updated-entity (merge orig-entity partial-entity)]
-    (println "!!! Backend updating " partial-entity)
-    (swap! entity-table assoc id updated-entity)))
-
-(defn create-entity
+(defn create-entity!
   "Slap an :id in here and add it to the table."
   [partial-entity]
+  (println "Creating entity " partial-entity)
   (let
       [id         (next-free-id)
        new-entity (assoc partial-entity :id id)]
-    (swap! entity-table assoc id new-entity)
+    (swap! entity-cache-atom entity-cache/set-entity-data 1 id new-entity)
     new-entity))
 
 (defn delete-entity!
   [id]
-  (swap! entity-table dissoc id))
+  (swap! entity-cache-atom entity-cache/remove-entity-data id))
 
 (defn filter-entities
   ""
   [query-forms]
-  (let [match-fn (entities/compile-query query-forms entity-by-id)]
-    (filter #(match-fn (second %)) @entity-table)))
+  (entity-cache/query @entity-cache-atom query-forms))
 
 ;;
 ;; Request Processing
@@ -102,16 +84,19 @@
   ;; POST /search-entities with predicate vector as EDN in body
 
   (GET "/entity/:id" [id :<< as-int]
-    (edn-response 200 (entity-by-id id)))
+    (println "GET /entity/" id)
+    (edn-response 200 (entity-cache/lookup-id @entity-cache-atom id)))
 
   (DELETE "/entity/:id" [id :<< as-int]
+    (println "DELETE /entity/" id)
     (delete-entity! id)
     (edn-response 200 nil))
 
   (POST "/search-entities" request
-     (let [query-forms (edn-from-request request)]
+    (println "POST /search-entities")
+    (let [query-forms (edn-from-request request)]
        (let
-           [ids-matching-query (into [] (map #(:id (second %)) (filter-entities query-forms)))]
+           [ids-matching-query (map :id (filter-entities query-forms))]
          (edn-response 200 ids-matching-query))))
 
   ;; Creating and editing entities
@@ -125,17 +110,24 @@
   ;;     Response: Nothing.
 
   (PUT "/entity" request
+    (println "PUT /entity")
     (let [new-entity (edn-from-request request)]
-      (edn-response 200 (:id (create-entity new-entity)))))
+      (edn-response 200 (:id (create-entity! new-entity)))))
 
   (POST "/entity" request
+    (println "POST /entity")
     (let [new-entity (edn-from-request request)]
-      (edn-response 200 (:id (create-entity new-entity)))))
+      (edn-response 200 (:id (create-entity! new-entity)))))
 
   (PATCH "/entity" request
+    (println "PATCH /entity")
     (let [updated-entity (edn-from-request request)]
       (edn-response 200 (do
-                          (update-entity updated-entity)
+                          (swap! entity-cache-atom
+                                 entity-cache/set-entity-data
+                                 1
+                                 (:id updated-entity)
+                                 updated-entity)
                           nil))))
 
   (route/not-found

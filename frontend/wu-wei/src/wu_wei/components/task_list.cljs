@@ -3,6 +3,7 @@
   (:require react-dom
             [reagent.core :as r]
             [reagent.dom :as rd]
+            [clojure.string :as str]
             [wu-wei.entities :as entities]
             [wu-wei.util :as util]
             [wu-wei.entities.caching :as entity-cache]
@@ -13,7 +14,7 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [t {:keys [is-selected? on-select on-recurse display-mode on-modify-entity fn-delete-entity]}]
+  [t cache {:keys [is-selected? on-select on-recurse display-mode on-modify-entity fn-delete-entity]}]
   ^{:key (task-box-keygen t)}
   [:div
 
@@ -50,6 +51,15 @@
       ;;             )}
       }
      (:summary t)]
+
+    ;; Show ancestry
+    [:div.ww-task-list-item-ancestry
+     (let [ancestry-ids (entity-cache/task-ancestry-ids cache t)]
+       (if (empty? ancestry-ids)
+         ""
+         (str
+          (str/join " > " (map (comp :summary (partial entity-cache/lookup-id cache)) ancestry-ids))
+          )))]
 
     ;; Marker for normal display items representing tasks with subtasks
     (if (and (seq (:subtask-ids t)) (= display-mode :normal))
@@ -129,7 +139,8 @@
                       (do
                         (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))}
                                        (fn [new-id]
-                                         (fn-update-entity (entities/add-subtask-by-id parent-task new-id))))
+                                         (if parent-task
+                                           (fn-update-entity (entities/add-subtask-by-id parent-task new-id)))))
                         (set! (-> evnt .-target .-textContent) "")
                         (-> evnt .preventDefault))))}])
 
@@ -152,14 +163,15 @@
            fn-delete-entity]}]
   (println "Making task-list")
   (let
-      [context-task-ids @context-stack-atom
-       context-tasks (map #(entity-cache/lookup-id @entity-cache-atom %) context-task-ids)
-       direct-subtasks (entity-cache/query @entity-cache-atom [:subtask-of? (:id (last context-tasks))])
-       indirect-subtasks (entity-cache/query @entity-cache-atom [:and
+      [entity-cache-state @entity-cache-atom
+       context-task-ids @context-stack-atom
+       context-tasks (map #(entity-cache/lookup-id entity-cache-state %) context-task-ids)
+       direct-subtasks (entity-cache/query entity-cache-state [:subtask-of? (:id (last context-tasks))])
+       indirect-subtasks (entity-cache/query entity-cache-state [:and
                                                                  [:descendent-of? (:id (last context-tasks))]
                                                                  [:not [:subtask-of? (:id (last context-tasks))]]])
        task-to-task-list-item (fn [task]
-                                (task-list-item task
+                                (task-list-item task entity-cache-state
                                                 {:display-mode :normal
                                                  :is-selected?
                                                  (and @selected-id-atom
@@ -200,7 +212,7 @@
         ;; The context stack
         (doall
          (map-indexed (fn [context-index task]
-                        (task-list-item task
+                        (task-list-item task entity-cache-state
                                         {:display-mode
                                          (if (= context-index (dec (count context-tasks)))
                                            :context-final

@@ -310,6 +310,16 @@ html, body {
     padding: 5px 2px 5px 2px;
 }
 
+.ww-task-list-item-ancestry {
+    /* width: 100%; */
+    font-size: 0.8em;
+    color: gray;
+    height: 100%;
+    margin: 0px;
+    margin-left: 10px;
+    padding: 5px 2px 5px 2px;
+}
+
 .ww-task-list-item-summary:focus {
     outline: 0px solid transparent;
     background: rgb( 240,240,240);

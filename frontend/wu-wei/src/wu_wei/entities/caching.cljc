@@ -1,36 +1,67 @@
 (ns wu-wei.entities.caching
   (:require [wu-wei.entities :as entities]))
 
+;; Working with entity caches
+
 (defn new-cache
   "Create an empty cache"
   []
-  (hash-map))
+  {:entity-records {}
+   :task-graph-cache {}})
 
-(defn declare-exist
-  "Create an empty data node for a set of entity IDs. This lets the
-  cache know that some ID exists, but data has not yet been fetched for it."
-  [cache timestamp & ids-that-exist]
-  (merge cache (into {} (map #(vector % {:retrieved timestamp :entity-data nil})) ids-that-exist)))
+;; (defn declare-exist
+;;   "Create an empty data node for a set of entity IDs. This lets the
+;;   cache know that some ID exists, but data has not yet been fetched for it."
+;;   [cache timestamp & ids-that-exist]
+;;   (merge cache (into {} (map #(vector % {:retrieved timestamp :entity-data nil})) ids-that-exist)))
 
+(declare update-task-graph-cache)
 (defn set-entity-data
   "Return `cache` with new `entity-data` associated with ID `id` and given update `timestamp`"
   [cache timestamp id entity-data]
-  (merge cache {id {:retrieved timestamp :entity-data entity-data}}))
+  (let [updated-cache (update cache :entity-records assoc id {:retrieved timestamp :entity-data entity-data})]
+    (update-task-graph-cache updated-cache id)))
 
 (defn remove-entity-data
   "Return `cache` with data for entity id `id` removed"
   [cache id]
-  (dissoc cache id))
+  (update cache :entity-records dissoc id))
 
 (defn lookup-id
   "Retrieve entity data stored for given ID `id` in `cache`"
   [cache id]
-  (if (contains? cache id)
-    (let [cache-data (get cache id)]
-      ;; (println (str "LOOKUP(" id ") => " cache-data))
-      (:entity-data cache-data))
-    nil))
+  (let [cache-data (get (:entity-records cache) id)]
+    (when cache-data
+      (:entity-data cache-data))))
 
+(defn all-ids
+  "Get all IDs in the cache"
+  [cache]
+  (into #{} (keys (:entity-records cache))))
+
+;; task graph cache
+
+(defn update-task-graph-cache
+  ""
+  [cache modified-id]
+  (let [task-graph-cache (:task-graph-cache cache)
+        entity-records   (:entity-records cache)]
+    (merge cache {:task-graph-cache
+                  (reduce (fn [tgc-in-progress [_ entity-record]]
+                            ;; (println "||" tgc-in-progress _ entity-record)
+                            (let [entity-data (:entity-data entity-record)]
+                              ;; Check to see if this entity has any relation to the modified ID
+                              (cond
+                                (contains? (:subtask-ids entity-data) modified-id)
+                                (merge tgc-in-progress {modified-id {:parent-id (:id entity-data)}})
+
+                                (contains? (:subtask-ids (lookup-id cache modified-id)) (:id entity-data))
+                                (merge tgc-in-progress {(:id entity-data) {:parent-id modified-id}})
+
+                                true
+                                tgc-in-progress)))
+                          task-graph-cache
+                          entity-records)})))
 ;; TODO where should this live?
 
 (defn downstream-tasks
@@ -45,6 +76,27 @@
   "Is A a descendent of B?"
   [cache task-a task-b]
   (contains? (downstream-tasks cache task-b) task-a))
+
+(defn parent-task-id
+  "Find parent task of a given task"
+  [cache task]
+  (let [item-tgc-entry (get (:task-graph-cache cache) (:id task))]
+    (if item-tgc-entry
+      (:parent-id item-tgc-entry))))
+
+(defn parent-task
+  "Find the parent task of a given task"
+  [cache task]
+  (let [parent-id (parent-task-id cache task)]
+    (lookup-id cache parent-id)))
+
+(defn task-ancestry-ids
+  ([cache task] (task-ancestry-ids cache task []))
+  ([cache task progression]
+   (let [parent-id (parent-task-id cache task)]
+     (if parent-id
+       (recur cache (lookup-id cache parent-id) (conj progression parent-id))
+       (reverse progression)))))
 
 ;; End TODO
 
@@ -110,7 +162,8 @@
   "
   [cache query-forms]
   (let
-      [parse-error              (fn [msg] (throw (ex-info msg)))
+      [parse-error              (fn [msg]
+                                  (throw (ex-info msg {})))
        always-false             (fn [& _] false)
        always-true              (fn [& _] true)
        require-all-recursions   (fn [ent args]
@@ -144,9 +197,9 @@
         (and (vector? query-forms) (keyword? (first query-forms)))
           ((get expression-predicate-map (first query-forms) always-false) entity (rest query-forms))
         :default
-          (parse-error (format "Illegal entity filter: %s" query-forms))))))
+          (parse-error (str "Illegal entity filter: " query-forms))))))
 
 (defn query [cache query-forms]
   (let [query-func (compile-query cache query-forms)]
     (filter query-func
-            (map #(:entity-data (second %)) cache))))
+            (map #(:entity-data (second %)) (:entity-records cache)))))
