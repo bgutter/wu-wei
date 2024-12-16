@@ -104,12 +104,22 @@
     (lookup-id cache parent-id)))
 
 (defn task-ancestry-ids
-  ([cache task] (task-ancestry-ids cache task []))
-  ([cache task progression]
-   (let [parent-id (parent-task-id cache task)]
-     (if parent-id
-       (recur cache (lookup-id cache parent-id) (conj progression parent-id))
-       (reverse progression)))))
+  [cache task & {:keys [up-to-id]}]
+  (if (and up-to-id (or
+                     (= (lookup-id cache up-to-id) task)
+                     (descendent-task? cache (lookup-id cache up-to-id) task)))
+
+    ;; If up-to-id is a descendent of task, return none
+    []
+
+    ;; Recurse parents
+    (let
+        [inner-fn (fn [cache task progression up-to-id]
+                    (let [parent-id (parent-task-id cache task)]
+                      (if (and parent-id (or (nil? up-to-id) (not (= up-to-id parent-id))))
+                        (recur cache (lookup-id cache parent-id) (conj progression parent-id) up-to-id)
+                        (reverse progression))))]
+      (inner-fn cache task [] up-to-id))))
 
 ;; End TODO
 

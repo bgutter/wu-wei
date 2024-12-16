@@ -24,7 +24,7 @@
            selected-id           @selected-id-atom
            selected-task         (entity-cache/lookup-id cache selected-id)
            selected-ancestry-ids (entity-cache/task-ancestry-ids cache selected-task)
-           t                     (entity-cache/lookup-id cache this-task-id)
+           this-task             (entity-cache/lookup-id cache this-task-id)
            display-mode          (if (nil? selected-id)
                                    :normal
                                    (if (= selected-id this-task-id)
@@ -57,12 +57,12 @@
                           (.blur (.-target %)))
           ;; when exiting focus, apply changes
           :on-blur (fn [event & _]
-                     (on-modify-entity (entities/set-summary t (.-textContent (.-target event)))))}
-         (:summary t)]
+                     (on-modify-entity (entities/set-summary this-task (.-textContent (.-target event)))))}
+         (:summary this-task)]
 
         ;; Show ancestry
         [:div.ww-task-list-item-ancestry
-         (let [ancestry-ids (entity-cache/task-ancestry-ids cache t)]
+         (let [ancestry-ids (entity-cache/task-ancestry-ids cache this-task :up-to-id selected-id)]
            (if (empty? ancestry-ids)
              ""
              (str
@@ -70,13 +70,13 @@
               )))]
 
         ;; Marker for normal display items representing tasks with subtasks
-        (if (and (seq (:subtask-ids t)) (= display-mode :normal))
+        (if (and (seq (:subtask-ids this-task)) (= display-mode :normal))
           [:div
            "+"])
 
         ;; numeric field at end of item
         ;; for dev purposes, just shows ID if item for now
-        [:div.ww-task-list-item-time-til-due (:id t)]]
+        [:div.ww-task-list-item-time-til-due (:id this-task)]]
 
        ;; The Expansion Panel
        [:div.ww-task-list-item-expansion-panel
@@ -89,9 +89,9 @@
         ;; Expansion Panel: Bottom Panel
         [:div.ww-task-list-item-bottom-panel
          [:div.ww-task-list-item-mini-button
-          {:class (if (entities/milestone? t) "ww-task-list-item-mini-button--selected")
-           :on-click #(on-modify-entity (entities/toggle-milestone t))}
-          (str "🧭 Milestone" (if (entities/milestone? t) "!" "?"))]
+          {:class (if (entities/milestone? this-task) "ww-task-list-item-mini-button--selected")
+           :on-click #(on-modify-entity (entities/toggle-milestone this-task))}
+          (str "🧭 Milestone" (if (entities/milestone? this-task) "!" "?"))]
          [:div.ww-task-list-item-mini-button "Start: November 2nd"]
          [:div.ww-task-list-item-mini-button "Due: November 11th"]
          [:div.ww-task-list-item-mini-button "Owner: Samantha"]
@@ -99,7 +99,7 @@
          [:div.ww-task-list-item-mini-button
           {:on-click (fn []
                        (if (= this-task-id @selected-id-atom)
-                         (let [parent-id (entity-cache/parent-task-id cache t)]
+                         (let [parent-id (entity-cache/parent-task-id cache this-task)]
                            (reset! selected-id-atom parent-id)))
                        (fn-delete-entity this-task-id))}
           "🗑️ Archive"
