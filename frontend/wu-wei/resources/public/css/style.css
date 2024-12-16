@@ -333,7 +333,6 @@ html, body {
     padding: 0px 10px 5px 0px;
     margin-right: 1em;
     font-size: 1em;
-    color: blue;
     font-weight: bold;
     width: 0.5em;
     height: 1em;
@@ -344,7 +343,7 @@ html, body {
     text-align: center;
 }
 
-.ww-task-list-item-checkbox:hover {
+.ww-task-list-context-item--final .ww-task-list-item-checkbox, .ww-task-list-context-item .ww-task-list-item-checkbox, .ww-task-list-item-checkbox:hover {
     width: 5em;
     background: rgb( 0, 0, 255, 0.2);
     color: blue;

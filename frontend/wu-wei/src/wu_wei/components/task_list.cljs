@@ -41,9 +41,11 @@
        [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)}
 
         ;; Checkbox or recursion icon depending on display mode
-        (if (some #{display-mode} [:context :context-final])
+        #_(if (some #{display-mode} [:context :context-final])
           [:div
            (str "⤵️ ")]
+          )
+        (if (not (= display-mode :context))
           [:div.ww-task-list-item-checkbox
            "OPEN"])
 
