@@ -126,6 +126,31 @@
                         (set! (-> evnt .-target .-textContent) "")
                         (-> evnt .preventDefault))))}])
 
+(defn query-forms-description-panel
+  [query-forms-atom group-forms-atom]
+  (let [is-expanded (r/atom false)]
+    (fn []
+      (let [query-forms @query-forms-atom
+            group-forms @group-forms-atom]
+        [:div.ww-task-list-query-description-panel
+         {:class (if @is-expanded "ww-task-list-query-description-panel--expanded")}
+         [:div.ww-task-list-query-description-panel-handle
+          {:on-click (fn [] (swap! is-expanded not))}
+          (if @is-expanded "🔎" "🔎 Edit Query...")]
+         [:div.ww-task-list-query-description-panel-groups
+          [:div.ww-task-list-query-description-panel-group
+           [:div.ww-task-list-query-description-panel-group-label "Filter: "]
+           [:div.ww-task-list-query-description-panel-group-value (str query-forms)]]
+          [:div.ww-task-list-query-description-panel-group
+           [:div.ww-task-list-query-description-panel-group-label "Group: "]
+           [:div.ww-task-list-query-description-panel-group-value (str group-forms)]]
+          [:div.ww-task-list-query-description-panel-group
+           [:div.ww-task-list-query-description-panel-group-label "Group Sort: "]
+           [:div.ww-task-list-query-description-panel-group-value "[:due-date :root-task]"]]
+          [:div.ww-task-list-query-description-panel-group
+           [:div.ww-task-list-query-description-panel-group-label "Task Sort: "]
+           [:div.ww-task-list-query-description-panel-group-value ":priority"]]]]))))
+
 (defn task-list-divider
   [section-name]
   ^{:key (str "task-list-divider-" section-name)}
@@ -144,21 +169,26 @@
            fn-delete-entity]}]
   (println "Making task-list")
   (let
-      [entity-cache-state @entity-cache-atom
-       selected-task-id @selected-id-atom
-       task-list-item-callbacks {:on-modify-entity
-                                 fn-update-entity
-                                 :fn-delete-entity
-                                 fn-delete-entity}]
-       ;; mk-task-list-item
-       ;; (fn [task]
-         ;; [task-list-item (:id task) entity-cache-atom selected-id-atom
-                         ;; ])]
+      [display-filter-atom (r/atom [])
+       display-group-atom (r/atom [])]
+    (fn []
+      (let
+          [entity-cache-state @entity-cache-atom
+           selected-task-id @selected-id-atom
+           query-forms (or @query-forms-atom :task?)
+           task-list-item-callbacks {:on-modify-entity
+                                     fn-update-entity
+                                     :fn-delete-entity
+                                     fn-delete-entity}]
+        ;; mk-task-list-item
+        ;; (fn [task]
+        ;; [task-list-item (:id task) entity-cache-atom selected-id-atom
+        ;; ])]
 
-    ;;
-    ;; The components
-    ;;
-    [(r/adapt-react-class js/FlipMove)
+        ;;
+        ;; The components
+        ;;
+        [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"
           :easing "ease-out"
           :appear-animation nil
@@ -166,64 +196,77 @@
           :leave-animation "fade"
           ;; :duration 5000
           }
-     (if selected-task-id
-       ;; Contents With Context Mode
-       ;; - Shows 3 sections of tasks:
-       ;;   - Context stack
-       ;;   - direct subtasks
-       ;;   - indirect subtasks
-       (let
-           [selected-task     (entity-cache/lookup-id entity-cache-state selected-task-id)
-            ancestry-ids      (entity-cache/task-ancestry-ids entity-cache-state selected-task)
-            context-task-ids  (reverse (conj (reverse ancestry-ids) selected-task-id))
-            context-tasks     (map #(entity-cache/lookup-id entity-cache-state %) context-task-ids)
-            direct-subtasks   (entity-cache/query entity-cache-state [:subtask-of? (:id (last context-tasks))])
-            indirect-subtasks (entity-cache/query entity-cache-state [:and
-                                                                      [:descendent-of? (:id (last context-tasks))]
-                                                                      [:not [:subtask-of? (:id (last context-tasks))]]])]
-         (println "CONTEXT: " context-task-ids)
-         (concat
+         (if selected-task-id
+           ;; Contents With Context Mode
+           ;; - Shows 3 sections of tasks:
+           ;;   - Context stack
+           ;;   - direct subtasks
+           ;;   - indirect subtasks
+           (let
+               [selected-task     (entity-cache/lookup-id entity-cache-state selected-task-id)
+                ancestry-ids      (entity-cache/task-ancestry-ids entity-cache-state selected-task)
+                context-task-ids  (reverse (conj (reverse ancestry-ids) selected-task-id))
+                context-tasks     (map #(entity-cache/lookup-id entity-cache-state %) context-task-ids)
+                direct-subtasks-query-forms [:subtask-of? (:id (last context-tasks))]
+                direct-subtasks   (entity-cache/query entity-cache-state direct-subtasks-query-forms)
+                indirect-subtasks (entity-cache/query entity-cache-state [:and
+                                                                          [:descendent-of? (:id (last context-tasks))]
+                                                                          [:not [:subtask-of? (:id (last context-tasks))]]])]
+             (println "CONTEXT: " context-task-ids)
+             (reset! display-filter-atom direct-subtasks-query-forms)
+             (reset! display-group-atom [:is-direct-subtask-of (:id (last context-tasks))])
+             (concat
 
-          ;; The context stack
-          (doall
-           (for [task context-tasks]
-             ^{:key (task-box-keygen (:id task))}
-             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
+              ;; The context stack
+              (doall
+               (for [task context-tasks]
+                 ^{:key (task-box-keygen (:id task))}
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
 
-          ;; The task creation box
-          [(task-creation-box {:placeholder-text
-                               (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
-                               :fn-new-entity
-                               fn-new-entity
-                               :parent-task
-                               (entity-cache/lookup-id entity-cache-state selected-task-id)
-                               :fn-update-entity
-                               fn-update-entity})]
+              [^{:key "query-forms-panel"}
+               [query-forms-description-panel display-filter-atom display-group-atom]]
 
-          ;; The direct subtasks
-          [(task-list-divider "Direct Subtasks")]
-          (doall
-           (for [task direct-subtasks]
-             ^{:key (task-box-keygen (:id task))}
-             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
+              ;; The task creation box
+              [(task-creation-box {:placeholder-text
+                                   (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
+                                   :fn-new-entity
+                                   fn-new-entity
+                                   :parent-task
+                                   (entity-cache/lookup-id entity-cache-state selected-task-id)
+                                   :fn-update-entity
+                                   fn-update-entity})]
 
-          ;; The indirect subtasks
-          [(task-list-divider "Indirect Subtasks")]
-          (doall
-           (for [task indirect-subtasks]
-             ^{:key (task-box-keygen (:id task))}
-             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))))
+              ;; The direct subtasks
+              [(task-list-divider "Direct Subtasks")]
+              (doall
+               (for [task direct-subtasks]
+                 ^{:key (task-box-keygen (:id task))}
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
 
-       ;; Un-Recursed Mode
-       ;; - Displays all tasks
-         (concat
-          [(task-creation-box {:placeholder-text
-                               "➕ New Goal"
-                               :fn-new-entity
-                               fn-new-entity
-                               :fn-update-entity
-                               fn-update-entity})]
-          (doall
-           (for [task (entity-cache/query @entity-cache-atom (or @query-forms-atom :task?))]
-             ^{:key (task-box-keygen (:id task))}
-             [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))))]))
+              ;; The indirect subtasks
+              [(task-list-divider "Indirect Subtasks")]
+              (doall
+               (for [task indirect-subtasks]
+                 ^{:key (task-box-keygen (:id task))}
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))))
+
+           ;; Un-Recursed Mode
+           ;; - Displays all tasks
+           (let
+               []
+             (reset! display-filter-atom query-forms)
+             (reset! display-group-atom :nil)
+             (concat
+            [^{:key "query-forms-panel"}
+             [query-forms-description-panel display-filter-atom display-group-atom]]
+
+            [(task-creation-box {:placeholder-text
+                                 "➕ New Goal"
+                                 :fn-new-entity
+                                 fn-new-entity
+                                 :fn-update-entity
+                                 fn-update-entity})]
+            (doall
+             (for [task (entity-cache/query entity-cache-state query-forms)]
+               ^{:key (task-box-keygen (:id task))}
+               [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks])))))]))))

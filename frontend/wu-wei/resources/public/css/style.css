@@ -475,6 +475,66 @@ html, body {
     font-size: 2em;
 }
 
+.ww-task-list-query-description-panel {
+    border-radius: 5px;
+    margin: 7px;
+    padding: 7px;
+    background: rgb(240,240,240);
+    border: solid 1px lightgray;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    overflow: hidden;
+}
+
+.ww-task-list-query-description-panel-group {
+    display: flex;
+    align-items: center;
+}
+
+.ww-task-list-query-description-panel-handle {
+    border-radius: 5px;
+    margin-right: 7px;
+}
+
+.ww-task-list-query-description-panel-handle:hover {
+    cursor: pointer;
+}
+
+.ww-task-list-query-description-panel-groups {
+    display: none;
+    height: 100%;
+}
+
+.ww-task-list-query-description-panel--expanded .ww-task-list-query-description-panel-groups {
+    display: flex;
+    align-items: center;
+}
+
+.ww-task-list-query-description-panel-group-label {
+}
+
+.ww-task-list-query-description-panel-group-value {
+    color: rgb(70,70,70);
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 5px;
+    border: solid 1px gray;
+    padding: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+    font-size: 0.9em;
+    height: 100%;
+}
+
+.ww-task-list-query-description-panel-group-value:hover {
+    cursor: pointer;
+}
+
+.ww-task-list-query-description-panel--expanded {
+}
+
 .item {
   transition: all 0.5s ease;
 }
