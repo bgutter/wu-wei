@@ -444,6 +444,7 @@ html, body {
     border-radius: 5px;
     padding: 0px 3px 0px 3px;
     margin: 3px 2px 3px 2px;
+    display: flex;
     /* position: relative; */
     /* top: 40px; */
 }
@@ -451,6 +452,16 @@ html, body {
 .ww-task-list-item-mini-button--selected {
     color: blue;
     border: solid 2px blue;
+}
+
+.ww-task-list-item-mini-button--editing {
+    /* color: blue; */
+    border-color: blue;
+}
+
+.ww-task-list-item-mini-button-value {
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 /* .ww-task-list-item--selected .ww-task-list-item-mini-button { */
@@ -487,6 +498,7 @@ html, body {
     position: fixed;
     bottom: 0;
     overflow: hidden;
+    font-size: 0.8em;
 }
 
 .ww-task-list-query-description-panel-group {

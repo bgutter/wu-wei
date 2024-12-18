@@ -1,5 +1,6 @@
 (ns wu-wei.components.task-list
-  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [wu-wei.components.task-list-macros :refer [on-enter-key after-delay-ms]])
   (:require react-dom
             [reagent.core :as r]
             [reagent.dom :as rd]
@@ -11,6 +12,48 @@
 
 (defn task-box-keygen [task-id]
   (str "key-task-box-" task-id))
+
+;; (defn select-div-text [div-id]
+;;   (let [range (js/document.createRange)
+;;         selection (.-getSelection js/window)
+;;         div (js/document.getElementById div-id)]
+;;     (.selectNodeContents range div)
+;;     (.removeAllRanges selection)
+;;     (.addRange selection range)))
+
+(defn select-div-text [div-id]
+  (let [el (js/document.getElementById div-id)]
+    (if el
+      (do
+        (.selectAllChildren (js/window.getSelection) el)
+        (.select el))
+      (js/console.warn "Could not find element with id:" div-id))))
+
+(defn effort-mini-button
+  [entity-cache-atom task-id & {:keys [fn-update-entity]}]
+  (let
+      [edit-mode-atom (r/atom false)
+       value-element-id (str "effort-mini-button-" task-id)]
+    (fn []
+      (let
+          [is-edit-mode @edit-mode-atom
+           task         (entity-cache/lookup-id @entity-cache-atom task-id)]
+        [:div.ww-task-list-item-mini-button
+         {:class (if is-edit-mode "ww-task-list-item-mini-button--editing")
+          :on-click (fn [event]
+                      (when (not is-edit-mode)
+                        (reset! edit-mode-atom true)
+                        (after-delay-ms 10
+                                        (select-div-text value-element-id))))}
+         [:div.ww-task-list-item-mini-button-label "Effort:"]
+         [:div.ww-task-list-item-mini-button-value
+          {:content-editable is-edit-mode
+           :id value-element-id
+           :on-key-down (fn [event]
+                          (on-enter-key event
+                                        (fn-update-entity (assoc task :effort-estimate (.-textContent (.-target event))))
+                                        (reset! edit-mode-atom false)))}
+            (:effort-estimate task)]]))))
 
 (defn task-list-item
   "An individual item within the task-list"
@@ -54,9 +97,10 @@
          {:content-editable "true"
           :on-click (fn [evnt] (-> evnt .stopPropagation))
           ;; when enter key pressed, lose focus
-          :on-key-down #(when (= (.-key %) "Enter")
-                          (reset! is-summary-edited-atom true)
-                          (.blur (.-target %)))
+          :on-key-down (fn [evt]
+                         (on-enter-key evt
+                                       (reset! is-summary-edited-atom true)
+                                       (.blur (.-target evt))))
           ;; when exiting focus, apply changes
           :on-blur (fn [event & _]
                      (on-modify-entity (entities/set-summary this-task (.-textContent (.-target event)))))}
@@ -97,7 +141,7 @@
          [:div.ww-task-list-item-mini-button "Start: November 2nd"]
          [:div.ww-task-list-item-mini-button "Due: November 11th"]
          [:div.ww-task-list-item-mini-button "Owner: Samantha"]
-         [:div.ww-task-list-item-mini-button "Effort: 3D"]
+         [effort-mini-button entity-cache-atom this-task-id :fn-update-entity on-modify-entity]
          [:div.ww-task-list-item-mini-button
           {:on-click (fn []
                        (if (= this-task-id @selected-id-atom)
@@ -117,14 +161,13 @@
     :data-ph placeholder-text
     :on-key-down (fn [evnt]
                     (js/console.log "Pressed" (.-key evnt))
-                    (if (= (.-key evnt) "Enter")
+                    (on-enter-key evnt
                       (do
                         (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))}
                                        (fn [new-id]
                                          (if parent-task
                                            (fn-update-entity (entities/add-subtask-by-id parent-task new-id)))))
-                        (set! (-> evnt .-target .-textContent) "")
-                        (-> evnt .preventDefault))))}])
+                        (set! (-> evnt .-target .-textContent) ""))))}])
 
 (defn query-forms-description-panel
   [query-forms-atom group-forms-atom]
