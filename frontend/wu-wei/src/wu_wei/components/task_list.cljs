@@ -29,7 +29,8 @@
   [entity-cache-atom task-id & {:keys [fn-update-entity]}]
   (let
       [edit-mode-atom (r/atom false)
-       value-element-id (str "effort-mini-button-" task-id)]
+       value-element-id (str "effort-mini-button-" task-id)
+       placeholder-text "?"]
     (fn []
       (let
           [is-edit-mode @edit-mode-atom
@@ -48,13 +49,17 @@
           {:content-editable is-edit-mode
            :id value-element-id
            :on-blur (fn [event]
-                      (fn-update-entity (assoc task :effort-estimate (.-textContent (.-target event))))
-                      (reset! edit-mode-atom false))
+                      (let [text (.-textContent (.-target event))]
+                        (if (not (= placeholder-text text))
+                          (fn-update-entity (assoc task :effort-estimate text)))
+                      (reset! edit-mode-atom false)))
            :on-key-down (fn [event]
                           (on-enter-key event
                                         (fn-update-entity (assoc task :effort-estimate (.-textContent (.-target event))))
                                         (reset! edit-mode-atom false)))}
-            (:effort-estimate task)]]))))
+          (if (and (not is-edit-mode) (not (value-real-p effort-estimate)))
+            placeholder-text
+            (:effort-estimate task))]]))))
 
 (defn task-list-item
   "An individual item within the task-list"
