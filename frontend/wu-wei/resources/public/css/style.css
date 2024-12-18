@@ -454,9 +454,15 @@ html, body {
     border: solid 2px blue;
 }
 
+.ww-task-list-item-mini-button--set {
+    color: blue;
+    border-color: blue;
+}
+
 .ww-task-list-item-mini-button--editing {
     /* color: blue; */
-    border-color: blue;
+    /* border-color: blue; */
+    background: lightgray;
 }
 
 .ww-task-list-item-mini-button-value {
@@ -473,6 +479,10 @@ html, body {
     border: solid 2px;
     background: rgb( 240, 240, 240 );
     transition: background 0.5s 0.5s ease-out;
+}
+
+.ww-task-list-item-mini-button-value:focus {
+    outline: 0px solid transparent;
 }
 
 .ww-controls-panel {

@@ -13,14 +13,6 @@
 (defn task-box-keygen [task-id]
   (str "key-task-box-" task-id))
 
-;; (defn select-div-text [div-id]
-;;   (let [range (js/document.createRange)
-;;         selection (.-getSelection js/window)
-;;         div (js/document.getElementById div-id)]
-;;     (.selectNodeContents range div)
-;;     (.removeAllRanges selection)
-;;     (.addRange selection range)))
-
 (defn select-div-text [div-id]
   (let [el (js/document.getElementById div-id)]
     (if el
@@ -28,6 +20,10 @@
         (.selectAllChildren (js/window.getSelection) el)
         (.select el))
       (js/console.warn "Could not find element with id:" div-id))))
+
+(defn value-real-p
+  [value]
+  (and (not (nil? value)) (> (count value) 0)))
 
 (defn effort-mini-button
   [entity-cache-atom task-id & {:keys [fn-update-entity]}]
@@ -37,18 +33,23 @@
     (fn []
       (let
           [is-edit-mode @edit-mode-atom
-           task         (entity-cache/lookup-id @entity-cache-atom task-id)]
+           task         (entity-cache/lookup-id @entity-cache-atom task-id)
+           effort-estimate (:effort-estimate task)]
         [:div.ww-task-list-item-mini-button
-         {:class (if is-edit-mode "ww-task-list-item-mini-button--editing")
+         {:class [(if is-edit-mode "ww-task-list-item-mini-button--editing")
+                  (if (value-real-p effort-estimate) "ww-task-list-item-mini-button--set")]
           :on-click (fn [event]
                       (when (not is-edit-mode)
                         (reset! edit-mode-atom true)
                         (after-delay-ms 10
                                         (select-div-text value-element-id))))}
-         [:div.ww-task-list-item-mini-button-label "Effort:"]
+         [:div.ww-task-list-item-mini-button-label "💪 Effort:"]
          [:div.ww-task-list-item-mini-button-value
           {:content-editable is-edit-mode
            :id value-element-id
+           :on-blur (fn [event]
+                      (fn-update-entity (assoc task :effort-estimate (.-textContent (.-target event))))
+                      (reset! edit-mode-atom false))
            :on-key-down (fn [event]
                           (on-enter-key event
                                         (fn-update-entity (assoc task :effort-estimate (.-textContent (.-target event))))
@@ -133,15 +134,33 @@
           :data-ph "Enter a description..."}]
 
         ;; Expansion Panel: Bottom Panel
-        [:div.ww-task-list-item-bottom-panel
+        [(r/adapt-react-class js/FlipMove)
+         {:class "ww-task-list-item-bottom-panel"}
+
+         (if (value-real-p (:effort-estimate this-task))
+           ^{:key "effort-mini-button"}
+           [effort-mini-button entity-cache-atom this-task-id :fn-update-entity on-modify-entity])
+
+         ^{:key "milestone-mini-button"}
          [:div.ww-task-list-item-mini-button
           {:class (if (entities/milestone? this-task) "ww-task-list-item-mini-button--selected")
            :on-click #(on-modify-entity (entities/toggle-milestone this-task))}
           (str "🧭 Milestone" (if (entities/milestone? this-task) "!" "?"))]
+
+         ^{:key "start-date-mini-button"}
          [:div.ww-task-list-item-mini-button "Start: November 2nd"]
+
+         ^{:key "due-date-mini-button"}
          [:div.ww-task-list-item-mini-button "Due: November 11th"]
+
+         ^{:key "assignee-mini-button"}
          [:div.ww-task-list-item-mini-button "Owner: Samantha"]
-         [effort-mini-button entity-cache-atom this-task-id :fn-update-entity on-modify-entity]
+
+         (if (not (value-real-p (:effort-estimate this-task)))
+           ^{:key "effort-mini-button"}
+           [effort-mini-button entity-cache-atom this-task-id :fn-update-entity on-modify-entity])
+
+         ^{:key "task-list-mini-buton"}
          [:div.ww-task-list-item-mini-button
           {:on-click (fn []
                        (if (= this-task-id @selected-id-atom)
