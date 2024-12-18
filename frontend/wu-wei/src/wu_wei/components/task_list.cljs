@@ -216,7 +216,11 @@
            [:div.ww-task-list-query-description-panel-group-value "[:due-date :root-task]"]]
           [:div.ww-task-list-query-description-panel-group
            [:div.ww-task-list-query-description-panel-group-label "Task Sort: "]
-           [:div.ww-task-list-query-description-panel-group-value ":priority"]]]]))))
+           [:div.ww-task-list-query-description-panel-group-value ":priority"]]
+          [:div.ww-task-list-query-description-panel-group
+           [:div.ww-task-list-query-description-panel-group-label "Mark: "]
+           [:div.ww-task-list-query-description-panel-group-value "{[:not :has-effort-estimate?] {:bg :red}}"]]
+          ]]))))
 
 (defn task-list-divider
   [section-name]
