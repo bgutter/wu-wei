@@ -108,6 +108,17 @@
                      (on-modify-entity (entities/set-summary this-task (.-textContent (.-target event)))))}
          (:summary this-task)]
 
+        ;; Show ancestry
+        [:div.ww-task-list-item-ancestry
+         (let [ancestry-ids (entity-cache/task-ancestry-ids cache this-task :up-to-id selected-id)]
+           (if (empty? ancestry-ids)
+             ""
+             (str
+              (str/join " > " (map (comp :summary (partial entity-cache/lookup-id cache)) ancestry-ids))
+              )))]
+
+        [:div.ww-flexbox-spacer]
+
         [:div.ww-task-list-item-effort-section
          (let
              [total-effort   (entity-cache/task-total-effort cache this-task)
@@ -126,19 +137,10 @@
               [:div.ww-task-list-item-effort-section-breakdown
                (str "[" (or own-effort "?") " + " subtask-effort "]")])))]
 
-        ;; Show ancestry
-        [:div.ww-task-list-item-ancestry
-         (let [ancestry-ids (entity-cache/task-ancestry-ids cache this-task :up-to-id selected-id)]
-           (if (empty? ancestry-ids)
-             ""
-             (str
-              (str/join " > " (map (comp :summary (partial entity-cache/lookup-id cache)) ancestry-ids))
-              )))]
-
-        ;; Marker for normal display items representing tasks with subtasks
-        (if (and (seq (:subtask-ids this-task)) (= display-mode :normal))
-          [:div
-           "+"])
+        ;; ;; Marker for normal display items representing tasks with subtasks
+        ;; (if (and (seq (:subtask-ids this-task)) (= display-mode :normal))
+        ;;   [:div
+        ;;    "+"])
 
         ;; numeric field at end of item
         ;; for dev purposes, just shows ID if item for now
