@@ -1,5 +1,6 @@
 (ns wu-wei.entities.caching
-  (:require [wu-wei.entities :as entities]))
+  (:require [wu-wei.entities :as entities]
+            [clojure.edn :refer [read-string]]))
 
 ;; Working with entity caches
 
@@ -77,6 +78,10 @@
                                      task-graph-cache)))})))
 ;; TODO where should this live?
 
+(defn task-subtasks
+  [cache task]
+  (map #(lookup-id cache %) (:subtask-ids task)))
+
 (defn downstream-tasks
   "A set of all tasks which are subtasks (direct or indirect) of `task`."
   [cache task]
@@ -120,6 +125,81 @@
                         (recur cache (lookup-id cache parent-id) (conj progression parent-id) up-to-id)
                         (reverse progression))))]
       (inner-fn cache task [] up-to-id))))
+
+(defn task-effort-value-valid-p
+  [value]
+  (and (not (nil? value)) (> (count value) 0)))
+
+(def duration-format-units-bak
+  {"w" (* 5 8 60 60)
+   "d" (* 8 60 60)
+   "h" (* 60 60)
+   "m" (* 60)
+   "s" 1})
+
+(defn decode-duration-str
+  "Convert a string representing spans of time into integer seconds."
+  [duration-str]
+  (let [unit-multipliers duration-format-units-bak]
+    (reduce (fn [total part]
+              (let [[_ num unit] (re-find #"(\d+)([wdhms])" part)]
+                (+ total (* (read-string num) (get unit-multipliers unit)))))
+            0
+            (re-seq #"\d+[wdhms]" duration-str))))
+
+(def duration-format-units
+  {:week   {:char "w" :size (* 5 8 60 60)}
+   :day    {:char "d" :size (* 8 60 60)}
+   :hour   {:char "h" :size (* 60 60)}
+   :minute {:char "m" :size (* 60)}
+   :second {:char "s" :size 1}})
+
+(defn encode-duration-str [duration-sec]
+  (let [units (vals duration-format-units)]
+    (loop [partial-str ""
+           remaining-sec duration-sec
+           [unit & rest :as unit-list] units]
+      (if (empty? unit-list)
+        partial-str
+        (let [{:keys [size char]} unit
+              unit-count (quot remaining-sec size)]
+          (if (pos? unit-count)
+            (recur (str partial-str "" unit-count char)
+                   (- remaining-sec (* unit-count size))
+                   rest)
+            (recur partial-str remaining-sec rest)))))))
+
+(defn task-own-effort
+  "Get the effort estimate for a single task."
+  [cache task]
+  (let [effort-estimate (:effort-estimate task)]
+    (if (task-effort-value-valid-p effort-estimate)
+      effort-estimate
+      nil)))
+
+(defn task-total-effort-sec
+  "Get the effort of this task plus all of its subtasks"
+  [cache task]
+  (let
+      [own-effort (task-own-effort cache task)
+       own-effort-sec (if own-effort (decode-duration-str own-effort) 0)]
+    (+ own-effort-sec
+       (apply +
+              (map #(task-total-effort-sec cache %)
+                   (task-subtasks cache task))))))
+
+(defn task-subtask-effort-sec
+  [cache task]
+  (apply + (map #(task-total-effort-sec cache %)
+                (task-subtasks cache task))))
+
+(defn task-total-effort
+  [cache task]
+  (encode-duration-str (task-total-effort-sec cache task)))
+
+(defn task-subtask-effort
+  [cache task]
+  (encode-duration-str (task-subtask-effort-sec cache task)))
 
 ;; End TODO
 

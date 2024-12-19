@@ -21,10 +21,6 @@
         (.select el))
       (js/console.warn "Could not find element with id:" div-id))))
 
-(defn value-real-p
-  [value]
-  (and (not (nil? value)) (> (count value) 0)))
-
 (defn effort-mini-button
   [entity-cache-atom task-id & {:keys [fn-update-entity]}]
   (let
@@ -35,10 +31,10 @@
       (let
           [is-edit-mode @edit-mode-atom
            task         (entity-cache/lookup-id @entity-cache-atom task-id)
-           effort-estimate (:effort-estimate task)]
+           effort-estimate (entity-cache/task-own-effort @entity-cache-atom task)]
         [:div.ww-task-list-item-mini-button
          {:class [(if is-edit-mode "ww-task-list-item-mini-button--editing")
-                  (if (value-real-p effort-estimate) "ww-task-list-item-mini-button--set")]
+                  (if effort-estimate "ww-task-list-item-mini-button--set")]
           :on-click (fn [event]
                       (when (not is-edit-mode)
                         (reset! edit-mode-atom true)
@@ -57,7 +53,7 @@
                           (on-enter-key event
                                         (fn-update-entity (assoc task :effort-estimate (.-textContent (.-target event))))
                                         (reset! edit-mode-atom false)))}
-          (if (and (not is-edit-mode) (not (value-real-p effort-estimate)))
+          (if (and (not is-edit-mode) (not effort-estimate))
             placeholder-text
             (:effort-estimate task))]]))))
 
@@ -112,6 +108,21 @@
                      (on-modify-entity (entities/set-summary this-task (.-textContent (.-target event)))))}
          (:summary this-task)]
 
+        [:div.ww-task-list-item-effort-section
+         (let
+             [total-effort   (entity-cache/task-total-effort cache this-task)
+              own-effort     (entity-cache/task-own-effort cache this-task)
+              subtask-effort (entity-cache/task-subtask-effort cache this-task)]
+           (list
+            (if (entity-cache/task-effort-value-valid-p total-effort)
+              [:div.ww-task-list-item-effort-section-total
+               (str total-effort)])
+            (if (and
+                 (entity-cache/task-effort-value-valid-p own-effort)
+                 (entity-cache/task-effort-value-valid-p subtask-effort))
+              [:div.ww-task-list-item-effort-section-breakdown
+               (str "[" (or own-effort "?") " + " subtask-effort "]")])))]
+
         ;; Show ancestry
         [:div.ww-task-list-item-ancestry
          (let [ancestry-ids (entity-cache/task-ancestry-ids cache this-task :up-to-id selected-id)]
@@ -142,7 +153,7 @@
         [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list-item-bottom-panel"}
 
-         (if (value-real-p (:effort-estimate this-task))
+         (if (entity-cache/task-effort-value-valid-p (:effort-estimate this-task))
            ^{:key "effort-mini-button"}
            [effort-mini-button entity-cache-atom this-task-id :fn-update-entity on-modify-entity])
 
@@ -161,7 +172,7 @@
          ^{:key "assignee-mini-button"}
          [:div.ww-task-list-item-mini-button "Owner: Samantha"]
 
-         (if (not (value-real-p (:effort-estimate this-task)))
+         (if (not (entity-cache/task-effort-value-valid-p (:effort-estimate this-task)))
            ^{:key "effort-mini-button"}
            [effort-mini-button entity-cache-atom this-task-id :fn-update-entity on-modify-entity])
 
