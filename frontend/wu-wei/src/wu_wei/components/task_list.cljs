@@ -112,11 +112,14 @@
          (let
              [total-effort   (entity-cache/task-total-effort cache this-task)
               own-effort     (entity-cache/task-own-effort cache this-task)
-              subtask-effort (entity-cache/task-subtask-effort cache this-task)]
+              subtask-effort (entity-cache/task-subtask-effort cache this-task)
+              subtask-effort-ambiguous (not (entity-cache/task-subtree-has-complete-effort-p cache this-task))]
            (list
             (if (entity-cache/task-effort-value-valid-p total-effort)
               [:div.ww-task-list-item-effort-section-total
-               (str total-effort)])
+               (str total-effort
+                    (if subtask-effort-ambiguous
+                      "*"))])
             (if (and
                  (entity-cache/task-effort-value-valid-p own-effort)
                  (entity-cache/task-effort-value-valid-p subtask-effort))
@@ -179,10 +182,12 @@
          ^{:key "task-list-mini-buton"}
          [:div.ww-task-list-item-mini-button
           {:on-click (fn []
-                       (if (= this-task-id @selected-id-atom)
-                         (let [parent-id (entity-cache/parent-task-id cache this-task)]
-                           (reset! selected-id-atom parent-id)))
-                       (fn-delete-entity this-task-id))}
+                       (let [parent-id (entity-cache/parent-task-id cache this-task)]
+                         (if (= this-task-id @selected-id-atom)
+                           (reset! selected-id-atom parent-id))
+                         (if parent-id
+                           (on-modify-entity (entities/remove-subtask (entity-cache/lookup-id cache parent-id) this-task)))
+                         (fn-delete-entity this-task-id)))}
           "🗑️ Archive"
           ]
          [:div.ww-flexbox-spacer]]]]))))

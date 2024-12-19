@@ -568,7 +568,7 @@ html, body {
 }
 
 .ww-task-list-item-effort-section-total {
-    color: darkred;
+    color: red;
     margin-right: 3px;
 }
 

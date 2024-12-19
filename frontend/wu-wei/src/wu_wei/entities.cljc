@@ -79,6 +79,10 @@
        (task? task-b))
     (merge task-a {:subtask-ids (conj (:subtask-ids task-a) (:id task-b))})))
 
+(defn remove-subtask
+  [task-a task-b]
+  (merge task-a {:subtask-ids (into #{} (remove #(= % (:id task-b)) (:subtask-ids task-a)))}))
+
 (defn add-subtask-by-id
   "Add subtask-id as a subtask of A"
   [task subtask-id]

@@ -201,6 +201,14 @@
   [cache task]
   (encode-duration-str (task-subtask-effort-sec cache task)))
 
+(defn task-subtree-has-complete-effort-p
+  "Among the subtask tree, do all LEAF nodes have effort estimates?"
+  [cache task]
+  (let [subtasks (task-subtasks cache task)]
+    (if (<= (count subtasks) 0)
+      (task-effort-value-valid-p (task-own-effort cache task))
+      (every? #(task-subtree-has-complete-effort-p cache %) subtasks))))
+
 ;; End TODO
 
 (defn compile-query
