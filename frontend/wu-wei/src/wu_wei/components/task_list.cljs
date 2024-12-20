@@ -196,20 +196,25 @@
 
 (defn task-creation-box
   "This is the area where users can enter text and inline-actions for new tasks."
-  [{:keys [placeholder-text parent-task fn-new-entity fn-update-entity]}]
+  [{:keys [selected-id-atom cache-atom placeholder-text fn-new-entity fn-update-entity]}]
   ^{:key "task-creation-box"}
-  [:div.ww-task-creation-box
-   {:content-editable true
-    :data-ph placeholder-text
-    :on-key-down (fn [evnt]
-                    (js/console.log "Pressed" (.-key evnt))
-                    (on-enter-key evnt
-                      (do
-                        (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))}
-                                       (fn [new-id]
-                                         (if parent-task
-                                           (fn-update-entity (entities/add-subtask-by-id parent-task new-id)))))
-                        (set! (-> evnt .-target .-textContent) ""))))}])
+  (let
+      [selected-id @selected-id-atom]
+    [:div.ww-task-creation-box
+     {:content-editable true
+      :data-ph placeholder-text
+      :on-key-down (fn [evnt]
+                     (js/console.log "Pressed" (.-key evnt))
+                     (on-enter-key evnt
+                                   (do
+                                     (fn-new-entity {:status :open :summary (.-textContent (.-target evnt))}
+                                                    (fn [new-id]
+                                                      (if selected-id
+                                                        (fn-update-entity
+                                                         (entities/add-subtask-by-id
+                                                          (entity-cache/lookup-id @cache-atom selected-id)
+                                                          new-id)))))
+                                     (set! (-> evnt .-target .-textContent) ""))))}]))
 
 (defn query-forms-description-panel
   [query-forms-atom group-forms-atom]
@@ -260,19 +265,38 @@
   (let
       [display-filter-atom (r/atom [])
        display-group-atom (r/atom [])]
+    (add-watch selected-id-atom
+               :proc-changes-to-selected-id
+               (fn [key atom old-state new-state]
+                 (when (not (nil? new-state))
+                   (reset! display-filter-atom [:subtask-of? new-state])
+                   (reset! display-group-atom [:is-direct-subtask-of new-state]))
+                 (when (and (nil? new-state) (not (nil? old-state)))
+                   (reset! display-filter-atom (or @query-forms-atom :task?))
+                   (reset! display-group-atom :nil))))
     (fn []
       (let
-          [entity-cache-state @entity-cache-atom
-           selected-task-id @selected-id-atom
-           query-forms (or @query-forms-atom :task?)
+          [entity-cache-state       @entity-cache-atom
+           selected-task-id         @selected-id-atom
+           selected-task            (and selected-task-id (entity-cache/lookup-id entity-cache-state selected-task-id))
+           query-forms              (or @query-forms-atom :task?)
            task-list-item-callbacks {:on-modify-entity
                                      fn-update-entity
                                      :fn-delete-entity
-                                     fn-delete-entity}]
-        ;; mk-task-list-item
-        ;; (fn [task]
-        ;; [task-list-item (:id task) entity-cache-atom selected-id-atom
-        ;; ])]
+                                     fn-delete-entity}
+           task-creation-box-itm    [task-creation-box
+                                     {:placeholder-text
+                                      (if selected-task-id
+                                        (str "➕ New Subtask of '" (:summary selected-task) "'")
+                                        "➕ New Goal")
+                                      :fn-new-entity
+                                      fn-new-entity
+                                      :selected-id-atom
+                                      selected-id-atom
+                                      :cache-atom
+                                      entity-cache-atom
+                                      :fn-update-entity
+                                      fn-update-entity}]]
 
         ;;
         ;; The components
@@ -292,8 +316,7 @@
            ;;   - direct subtasks
            ;;   - indirect subtasks
            (let
-               [selected-task     (entity-cache/lookup-id entity-cache-state selected-task-id)
-                ancestry-ids      (entity-cache/task-ancestry-ids entity-cache-state selected-task)
+               [ancestry-ids      (entity-cache/task-ancestry-ids entity-cache-state selected-task)
                 context-task-ids  (reverse (conj (reverse ancestry-ids) selected-task-id))
                 context-tasks     (map #(entity-cache/lookup-id entity-cache-state %) context-task-ids)
                 direct-subtasks-query-forms [:subtask-of? (:id (last context-tasks))]
@@ -302,8 +325,6 @@
                                                                           [:descendent-of? (:id (last context-tasks))]
                                                                           [:not [:subtask-of? (:id (last context-tasks))]]])]
              (println "CONTEXT: " context-task-ids)
-             (reset! display-filter-atom direct-subtasks-query-forms)
-             (reset! display-group-atom [:is-direct-subtask-of (:id (last context-tasks))])
              (concat
 
               ;; The context stack
@@ -316,14 +337,7 @@
                [query-forms-description-panel display-filter-atom display-group-atom]]
 
               ;; The task creation box
-              [(task-creation-box {:placeholder-text
-                                   (str "➕ New Subtask of '" (:summary (last context-tasks)) "'")
-                                   :fn-new-entity
-                                   fn-new-entity
-                                   :parent-task
-                                   (entity-cache/lookup-id entity-cache-state selected-task-id)
-                                   :fn-update-entity
-                                   fn-update-entity})]
+              [task-creation-box-itm]
 
               ;; The direct subtasks
               [(task-list-divider "Direct Subtasks")]
@@ -343,18 +357,12 @@
            ;; - Displays all tasks
            (let
                []
-             (reset! display-filter-atom query-forms)
-             (reset! display-group-atom :nil)
              (concat
             [^{:key "query-forms-panel"}
              [query-forms-description-panel display-filter-atom display-group-atom]]
 
-            [(task-creation-box {:placeholder-text
-                                 "➕ New Goal"
-                                 :fn-new-entity
-                                 fn-new-entity
-                                 :fn-update-entity
-                                 fn-update-entity})]
+            [task-creation-box-itm]
+
             (doall
              (for [task (entity-cache/query entity-cache-state query-forms)]
                ^{:key (task-box-keygen (:id task))}
