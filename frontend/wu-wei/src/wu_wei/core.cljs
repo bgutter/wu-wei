@@ -139,6 +139,7 @@
   [:div.ww-list-menu-section
    [:div.ww-list-menu-section-title "Milestones"]
    (for [milestone (entity-cache/query @entity-cache-atom :milestone?)]
+     ^{:key (str "list-menu-entry-" (:id milestone))}
      [list-menu-entry milestone
       {:on-select (fn []
                     (reset! task-list-selected-entity-id-atom (:id milestone))

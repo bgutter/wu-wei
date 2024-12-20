@@ -127,6 +127,7 @@
               subtask-effort-ambiguous (not (entity-cache/task-subtree-has-complete-effort-p cache this-task))]
            (list
             (if (entity-cache/task-effort-value-valid-p total-effort)
+              ^{:key "total-effort"}
               [:div.ww-task-list-item-effort-section-total
                (str total-effort
                     (if subtask-effort-ambiguous
@@ -134,6 +135,7 @@
             (if (and
                  (entity-cache/task-effort-value-valid-p own-effort)
                  (entity-cache/task-effort-value-valid-p subtask-effort))
+              ^{:key "breakdown-effort"}
               [:div.ww-task-list-item-effort-section-breakdown
                (str "[" (or own-effort "?") " + " subtask-effort "]")])))]
 
@@ -284,7 +286,8 @@
                                      fn-update-entity
                                      :fn-delete-entity
                                      fn-delete-entity}
-           task-creation-box-itm    [task-creation-box
+           task-creation-box-itm    ^{:key "task-creation-box"}
+                                     [task-creation-box
                                      {:placeholder-text
                                       (if selected-task-id
                                         (str "➕ New Subtask of '" (:summary selected-task) "'")
