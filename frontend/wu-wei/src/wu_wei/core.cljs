@@ -326,25 +326,85 @@
   [:div.ww-notes-view
    [note-node 0]])
 
-(defn d3-component []
+(defn d3-component [entity-cache-atom]
   (r/create-class
    {:component-did-mount
     (fn [this]
-      (let [node (rd/dom-node this)
-            ;; data (second (:argv (r/props this)))]
-            data [100 200 300 400 500]]
-        (-> js/d3
-            (.select node)
-            (.selectAll "rect")
-            (.data data)
-            (.enter)
-            (.append "rect")
-            (.attr "x" (fn [d i] (* i 30)))
-            (.attr "y" (fn [d] (- 500 d)))
-            (.attr "width" 25)
-            (.attr "height" identity)
-            (.attr "fill" "steelblue")
-            )))
+      (let [dom-node (rd/dom-node this)
+            svg (-> js/d3 (.select dom-node))
+
+            g (-> svg
+                  (.append "g")
+                  (.attr "transform" "translate(40,40)"))
+
+            tree (-> js/d3
+                     (.tree)
+                     (.size (clj->js [460 460])))
+
+            hierarchical-task-data (letfn [(foo [task-id]
+                                             (let [task (entity-cache/lookup-id @entity-cache-atom task-id)]
+                                               (println "TASK" task)
+                                               (if (> (count (:subtask-ids task)) 0)
+                                                 (clj->js {"data" task-id
+                                                           "name" (str "NODE " task-id)
+                                                           "children" (into []
+                                                                            (for [sid (:subtask-ids task)]
+                                                                              (foo sid)))})
+                                                 (clj->js {"data" task-id
+                                                           "name" (str "NODE " task-id)
+                                                           "children" []}))))]
+                                     (foo 0))
+
+            root (-> js/d3 (.hierarchy hierarchical-task-data))
+
+            ;; ugly, for side-effects
+            _ (tree root)
+
+            links (-> g
+                      (.selectAll ".link")
+                      (.data (-> root (.descendants) (.slice 1)))
+                      (.enter)
+                      (.append "path")
+                      (.attr "class" "link")
+                      (.attr "d" (fn [d]
+                                   (js/console.log d)
+                                   (str
+                                    "M" (.-y d) "," (.-x d)
+                                    "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
+                                    " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
+                                    " " (.-y (.-parent d)) "," (.-x (.-parent d))))))
+
+            node (-> g
+                     (.selectAll ".node")
+                     (.data (-> root (.descendants)))
+                     (.enter)
+                     (.append "g")
+                     (.attr "class" (fn [d]
+                                      (if (.-children d)
+                                        (str "node node--internal")
+                                        (str "node node--leaf"))))
+                     (.attr "transform" (fn [d]
+                                          (str "translate(" (.-y d)"," (.-x d) ")"))))
+
+            _ (-> node
+                  (.append "circle")
+                  (.attr "r" 2.5))
+
+            _ (-> node
+                  (.append "text")
+                  (.attr "dy" 3)
+                  (.attr "x" (fn [d]
+                               (if (.-children d)
+                                 -8
+                                 8)))
+                  (.style "text-anchor" (fn [d]
+                                          (if (.-children d)
+                                            "end"
+                                            "start")))
+                  (.text (fn [d]
+                           (-> d .-data .-summary))))]
+        nil))
+
     :reagent-render
     (fn []
       [:svg {:style {:width "100%" :height "100%"}}])}))
@@ -368,7 +428,7 @@
                   [notes-menu]
                   [notes-view]]
       :task-graph [:div.ww-task-graph-perspective
-                   [d3-component [100 200 300 400 500]]
+                   [d3-component entity-cache-atom]
                    #_[task-graph {:entity-cache-atom entity-cache-atom
                                 :selected-id-atom task-list-selected-entity-id-atom}]])]])
 
