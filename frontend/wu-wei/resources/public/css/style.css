@@ -34,6 +34,11 @@ html, body {
     height: 100%;
 }
 
+.ww-task-graph-perspective {
+    width: 100%;
+    height: 100%;
+}
+
 .ww-notes-view {
     width: 100%;
     height: 100%;
