@@ -51,7 +51,6 @@
    "/entity"
    entity
    (fn [status-code new-id]
-     (println "MADE NEW TASK")
      (fetch-entity! new-id)
      (if with-new-id
        (with-new-id new-id)))))
@@ -326,11 +325,9 @@
   [:div.ww-notes-view
    [note-node 0]])
 
-(defn d3-component [entity-cache-atom]
-  (r/create-class
-   {:component-did-mount
-    (fn [this]
-      (let [dom-node (rd/dom-node this)
+(defn draw-task-graph
+  [cache root-task-id component]
+  (let [dom-node (rd/dom-node component)
             svg (-> js/d3 (.select dom-node))
 
             g (-> svg
@@ -342,8 +339,7 @@
                      (.size (clj->js [460 460])))
 
             hierarchical-task-data (letfn [(foo [task-id]
-                                             (let [task (entity-cache/lookup-id @entity-cache-atom task-id)]
-                                               (println "TASK" task)
+                                             (let [task (entity-cache/lookup-id cache task-id)]
                                                (if (> (count (:subtask-ids task)) 0)
                                                  (clj->js {"data" task-id
                                                            "name" (str "NODE " task-id)
@@ -353,7 +349,7 @@
                                                  (clj->js {"data" task-id
                                                            "name" (str "NODE " task-id)
                                                            "children" []}))))]
-                                     (foo 0))
+                                     (foo root-task-id))
 
             root (-> js/d3 (.hierarchy hierarchical-task-data))
 
@@ -405,6 +401,12 @@
                            (-> d .-data .-summary))))]
         nil))
 
+(defn d3-component [entity-cache-atom selected-task-id-atom]
+  (r/create-class
+   {:component-did-mount
+    (fn [this]
+      (draw-task-graph @entity-cache-atom @selected-task-id-atom this))
+
     :reagent-render
     (fn []
       [:svg {:style {:width "100%" :height "100%"}}])}))
@@ -428,7 +430,7 @@
                   [notes-menu]
                   [notes-view]]
       :task-graph [:div.ww-task-graph-perspective
-                   [d3-component entity-cache-atom]
+                   [d3-component entity-cache-atom task-list-selected-entity-id-atom]
                    #_[task-graph {:entity-cache-atom entity-cache-atom
                                 :selected-id-atom task-list-selected-entity-id-atom}]])]])
 
