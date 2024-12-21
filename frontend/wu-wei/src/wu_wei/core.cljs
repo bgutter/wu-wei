@@ -8,7 +8,8 @@
             [wu-wei.entities.caching :as entity-cache]
             [wu-wei.requests :as requests]
             [wu-wei.components.task-list :refer [task-list]]
-            [cljsjs.react-flip-move]))
+            [cljsjs.react-flip-move]
+            [cljsjs.d3]))
 
 ;;
 ;; Entity Caching & Retrieval
@@ -199,6 +200,9 @@
    [:div
     {:on-click #(reset! active-perspective :task-list)}
      "☑️"]
+   [:div
+    {:on-click #(reset! active-perspective :task-graph)}
+     "🌳"]
    [:div.ww-flexbox-spacer]
    [:div "⚙️"]])
 
@@ -322,6 +326,29 @@
   [:div.ww-notes-view
    [note-node 0]])
 
+(defn d3-component []
+  (r/create-class
+   {:component-did-mount
+    (fn [this]
+      (let [node (rd/dom-node this)
+            ;; data (second (:argv (r/props this)))]
+            data [100 200 300 400 500]]
+        (-> js/d3
+            (.select node)
+            (.selectAll "rect")
+            (.data data)
+            (.enter)
+            (.append "rect")
+            (.attr "x" (fn [d i] (* i 30)))
+            (.attr "y" (fn [d] (- 500 d)))
+            (.attr "width" 25)
+            (.attr "height" identity)
+            (.attr "fill" "steelblue")
+            )))
+    :reagent-render
+    (fn []
+      [:svg {:style {:width "100%" :height "100%"}}])}))
+
 (defn app
   "Main Application Component"
   []
@@ -339,7 +366,11 @@
                               :fn-delete-entity delete-entity!}]]
       :notes     [:div.ww-notes-perspective
                   [notes-menu]
-                  [notes-view]])]])
+                  [notes-view]]
+      :task-graph [:div.ww-task-graph-perspective
+                   [d3-component [100 200 300 400 500]]
+                   #_[task-graph {:entity-cache-atom entity-cache-atom
+                                :selected-id-atom task-list-selected-entity-id-atom}]])]])
 
 (rd/render [app] (.-body js/document))
 
