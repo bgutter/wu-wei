@@ -83,7 +83,13 @@
        {:class (list (case display-mode
                        :context "ww-task-list-context-item"
                        :context-final "ww-task-list-context-item--final"
-                       :normal "ww-task-list-item"))}
+                       :normal "ww-task-list-item")
+                     (if (= hover-id this-task-id)
+                       "ww-task-list-item--hovered")
+                     (if (entity-cache/descendent-task? cache
+                                                        (entity-cache/lookup-id cache this-task-id)
+                                                        (entity-cache/lookup-id cache hover-id))
+                       "ww-task-list-item--downstream-hovered"))}
 
        [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)
                                           :on-mouse-enter #(reset! hover-id-atom this-task-id)

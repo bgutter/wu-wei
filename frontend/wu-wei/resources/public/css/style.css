@@ -96,6 +96,7 @@ html, body {
 
 .ww-task-list {
     width: 100%;
+    height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     background: rgb( 255, 255, 255 );
@@ -286,9 +287,13 @@ html, body {
     color: gray;
 }
 
-.ww-task-list-item:hover {
+.ww-task-list-item--hovered {
     background: rgb(240,240,240);
-    cursor: pointer;
+    transition: background 0.15s linear;
+}
+
+.ww-task-list-item--downstream-hovered {
+    background: rgb(230,230,255);
     transition: background 0.15s linear;
 }
 
@@ -589,20 +594,20 @@ html, body {
 .node circle {
   fill: black;
   stroke: black;
-  stroke-width: 3px;
+  stroke-width: 7px;
 }
 
 .node-hovered circle {
     stroke: blue;
     fill: blue;
-    stroke-width: 8px;
+    stroke-width: 10px;
     cursor: pointer;
 }
 
 .node-hovered-downstream circle {
     stroke: lightblue;
     fill: lightblue;
-    stroke-width: 5px;
+    stroke-width: 7px;
 }
 
 .node text {
