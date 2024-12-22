@@ -596,6 +596,7 @@ html, body {
     stroke: blue;
     fill: blue;
     stroke-width: 8px;
+    cursor: pointer;
 }
 
 .node-hovered-downstream circle {

@@ -10,7 +10,7 @@
 
 
 (defn draw-task-graph
-  [cache root-task-id hover-task-id component fn-on-click]
+  [cache root-task-id hover-task-id component fn-on-click fn-on-mouse-enter fn-on-mouse-leave]
   (let [dom-node (rd/dom-node component)
         svg (-> js/d3 (.select dom-node))
 
@@ -82,8 +82,7 @@
                                             (let [task-id (-> d .-data .-data)]
                                               (= task-id hover-task-id))))
                  (.attr "transform" (fn [d]
-                                      (str "translate(" (.-y d)"," (.-x d) ")")))
-                 (.on "click" fn-on-click))
+                                      (str "translate(" (.-y d)"," (.-x d) ")"))))
 
         _ (-> node
               (.classed "node-hovered-downstream" (fn [d]
@@ -94,7 +93,10 @@
 
         _ (-> node
               (.append "circle")
-              (.attr "r" 2.5))
+              (.attr "r" 2.5)
+              (.on "click" fn-on-click)
+              (.on "mouseenter" fn-on-mouse-enter)
+              (.on "mouseleave" fn-on-mouse-leave))
 
         _ (-> node
               (.append "text")
@@ -115,9 +117,16 @@
   (r/create-class
    (letfn
        [(fn-on-node-click [event data]
-          (let [real-data (-> data .-data .-data)]
-            (reset! selected-task-id-atom real-data)
-            (js/console.log "CLICKED " real-data)))]
+          (let [task-id (-> data .-data .-data)]
+            (reset! selected-task-id-atom task-id)))
+        (fn-on-mouse-enter [event data]
+          (js/console.log event)
+          (let [task-id (-> data .-data .-data)]
+            (if (not (= task-id @hover-id-atom))
+              (reset! hover-id-atom task-id))))
+        (fn-on-mouse-leave [event data]
+          (js/console.log event)
+          (reset! hover-id-atom nil))]
      {:component-will-mount
       (fn [this]
         (letfn
@@ -129,7 +138,9 @@
                                   selected-id
                                   @hover-id-atom
                                   this
-                                  fn-on-node-click)))]
+                                  fn-on-node-click
+                                  fn-on-mouse-enter
+                                  fn-on-mouse-leave)))]
           (add-watch entity-cache-atom
                      :task-map-redraw
                      handler-func)
