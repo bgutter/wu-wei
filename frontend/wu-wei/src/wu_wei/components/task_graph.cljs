@@ -10,7 +10,7 @@
 
 
 (defn draw-task-graph
-  [cache root-task-id component fn-on-click]
+  [cache root-task-id hover-task-id component fn-on-click]
   (let [dom-node (rd/dom-node component)
         svg (-> js/d3 (.select dom-node))
 
@@ -36,14 +36,14 @@
         hierarchical-task-data (letfn [(foo [task-id]
                                          (let [task (entity-cache/lookup-id cache task-id)]
                                            (if (> (count (:subtask-ids task)) 0)
-                                             (clj->js {"data" task-id
-                                                       "name" (str "NODE " task-id)
-                                                       "children" (into []
-                                                                        (for [sid (:subtask-ids task)]
-                                                                          (foo sid)))})
-                                             (clj->js {"data" task-id
-                                                       "name" (str "NODE " task-id)
-                                                       "children" []}))))]
+                                             (clj->js {:data task-id
+                                                       :name (str "NODE " task-id)
+                                                       :children (into []
+                                                                       (for [sid (:subtask-ids task)]
+                                                                         (foo sid)))})
+                                             (clj->js {:data task-id
+                                                       :name (str "NODE " task-id)
+                                                       :children []}))))]
                                  (foo root-task-id))
 
         root (-> js/d3 (.hierarchy hierarchical-task-data))
@@ -58,7 +58,6 @@
                   (.append "path")
                   (.attr "class" "link")
                   (.attr "d" (fn [d]
-                               (js/console.log d)
                                (str
                                 "M" (.-y d) "," (.-x d)
                                 "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
@@ -74,6 +73,11 @@
                                   (if (.-children d)
                                     (str "node node--internal")
                                     (str "node node--leaf"))))
+                 (.attr "class" (fn [d]
+                                  (let
+                                      [task-id (-> d .-data .-data)]
+                                    (if (= task-id hover-task-id)
+                                      "node-hovered"))))
                  (.attr "transform" (fn [d]
                                       (str "translate(" (.-y d)"," (.-x d) ")")))
                  (.on "click" fn-on-click))
@@ -95,9 +99,9 @@
                                         "start")))
               (.text (fn [d]
                        (-> d .-data .-summary))))]
-    (println "XxX" height width)))
+    ))
 
-(defn task-graph [entity-cache-atom selected-task-id-atom]
+(defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom]
   (r/create-class
    (letfn
        [(fn-on-node-click [event data]
@@ -111,12 +115,18 @@
                (let
                    [selected-id @selected-task-id-atom
                     cache @entity-cache-atom]
-                 (draw-task-graph cache selected-id this
+                 (draw-task-graph cache
+                                  selected-id
+                                  @hover-id-atom
+                                  this
                                   fn-on-node-click)))]
           (add-watch entity-cache-atom
                      :task-map-redraw
                      handler-func)
           (add-watch selected-task-id-atom
+                     :task-map-redraw
+                     handler-func)
+          (add-watch hover-id-atom
                      :task-map-redraw
                      handler-func)))
 
@@ -125,10 +135,15 @@
         (remove-watch entity-cache-atom
                       :task-map-redraw)
         (remove-watch selected-task-id-atom
+                      :task-map-redraw)
+        (remove-watch hover-id-atom
                       :task-map-redraw))
       :component-did-mount
       (fn [this]
-        (draw-task-graph @entity-cache-atom @selected-task-id-atom this
+        (draw-task-graph @entity-cache-atom
+                         @selected-task-id-atom
+                         @hover-id-atom
+                         this
                          fn-on-node-click))
 
       :reagent-render

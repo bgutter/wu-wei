@@ -60,7 +60,7 @@
 
 (defn task-list-item
   "An individual item within the task-list"
-  [this-task-id entity-cache-atom selected-id-atom
+  [this-task-id entity-cache-atom selected-id-atom hover-id-atom
    {:keys [on-select on-recurse on-modify-entity fn-delete-entity]}]
   (let
       [is-summary-edited-atom (r/atom false)]
@@ -68,6 +68,7 @@
       (let
           [cache                 @entity-cache-atom
            selected-id           @selected-id-atom
+           hover-id              @hover-id-atom
            selected-task         (entity-cache/lookup-id cache selected-id)
            selected-ancestry-ids (entity-cache/task-ancestry-ids cache selected-task)
            this-task             (entity-cache/lookup-id cache this-task-id)
@@ -84,7 +85,9 @@
                        :context-final "ww-task-list-context-item--final"
                        :normal "ww-task-list-item"))}
 
-       [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)}
+       [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)
+                                          :on-mouse-enter #(reset! hover-id-atom this-task-id)
+                                          :on-mouse-leave #(reset! hover-id-atom nil)}
 
         ;; Checkbox or recursion icon depending on display mode
         #_(if (some #{display-mode} [:context :context-final])
@@ -261,6 +264,7 @@
   [{:keys [entity-cache-atom
            query-forms-atom
            selected-id-atom
+           hover-id-atom
            fn-new-entity
            fn-update-entity
            fn-delete-entity]}]
@@ -306,7 +310,7 @@
         ;; The components
         ;;
         [:div {:style {:width "100%"}}
-         [task-graph entity-cache-atom selected-id-atom]
+         [task-graph entity-cache-atom selected-id-atom hover-id-atom]
          [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"
           :easing "ease-out"
@@ -337,7 +341,7 @@
               (doall
                (for [task context-tasks]
                  ^{:key (task-box-keygen (:id task))}
-                 [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks]))
 
               [^{:key "query-forms-panel"}
                [query-forms-description-panel display-filter-atom display-group-atom]]
@@ -350,14 +354,14 @@
               (doall
                (for [task direct-subtasks]
                  ^{:key (task-box-keygen (:id task))}
-                 [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks]))
 
               ;; The indirect subtasks
               [(task-list-divider "Indirect Subtasks")]
               (doall
                (for [task indirect-subtasks]
                  ^{:key (task-box-keygen (:id task))}
-                 [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks]))))
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks]))))
 
            ;; Un-Recursed Mode
            ;; - Displays all tasks
@@ -372,6 +376,6 @@
             (doall
              (for [task (entity-cache/query entity-cache-state query-forms)]
                ^{:key (task-box-keygen (:id task))}
-               [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks])))))]
+               [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks])))))]
 
          ]))))

@@ -587,9 +587,15 @@ html, body {
 
 /* DEBUG D3 STUFF */
 .node circle {
-  fill: #fff;
-  stroke: steelblue;
+  fill: black;
+  stroke: black;
   stroke-width: 3px;
+}
+
+.node-hovered circle {
+    stroke: steelblue;
+    fill: steelblue;
+    stroke-width: 5px;
 }
 
 .node text {
