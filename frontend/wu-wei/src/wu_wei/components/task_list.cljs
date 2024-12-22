@@ -315,7 +315,7 @@
         ;;
         ;; The components
         ;;
-        [:div {:style {:width "100%"}}
+        [:div {:style {:width "100%" :overflow-y "scroll"}}
          [task-graph entity-cache-atom selected-id-atom hover-id-atom]
          [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"
@@ -340,7 +340,6 @@
                 indirect-subtasks (entity-cache/query entity-cache-state [:and
                                                                           [:descendent-of? (:id (last context-tasks))]
                                                                           [:not [:subtask-of? (:id (last context-tasks))]]])]
-             (println "CONTEXT: " context-task-ids)
              (concat
 
               ;; The context stack
@@ -374,14 +373,14 @@
            (let
                []
              (concat
-            [^{:key "query-forms-panel"}
-             [query-forms-description-panel display-filter-atom display-group-atom]]
+              [^{:key "query-forms-panel"}
+               [query-forms-description-panel display-filter-atom display-group-atom]]
 
-            [task-creation-box-itm]
+              [task-creation-box-itm]
 
-            (doall
-             (for [task (entity-cache/query entity-cache-state query-forms)]
-               ^{:key (task-box-keygen (:id task))}
-               [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks])))))]
+              (doall
+               (for [task (entity-cache/query entity-cache-state query-forms)]
+                 ^{:key (task-box-keygen (:id task))}
+                 [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks])))))]
 
          ]))))
