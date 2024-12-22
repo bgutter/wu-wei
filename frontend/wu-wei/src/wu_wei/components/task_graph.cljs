@@ -46,10 +46,26 @@
                                                        :children []}))))]
                                  (foo root-task-id))
 
-        root (-> js/d3 (.hierarchy hierarchical-task-data))
+        root (-> js/d3
+                 (.hierarchy hierarchical-task-data)
+                 (.sort (fn [d]
+                          d)))
 
         ;; ugly, for side-effects
         _ (tree root)
+
+        max-depth (-> js/d3
+                      (.max (.leaves root)
+                            (fn [d] (.-y d))))
+
+        _ (-> root
+              (.each (fn [d]
+                       (set! (.-y d) (max 10 (min (- width 50) (.-y d))))
+                       (let [children (.-children d)]
+                         (if (or (not children) (<= (count children) 0))
+                           (do
+                             (js/console.log "Setting max depth")
+                             (set! (.-y d) (- width 50))))))))
 
         links (-> g
                   (.selectAll ".link")
@@ -108,11 +124,12 @@
               (.style "text-anchor" (fn [d]
                                       (if (.-children d)
                                         "end"
-                                        "start")))
+                                        "start"))))
               ;; (.text (fn [d]
               ;;          (let [task-id (-> d .-data .-data)]
               ;;            (:summary (entity-cache/lookup-id cache task-id)))))
-              )]))
+
+        ]))
 
 (defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom]
   (r/create-class
