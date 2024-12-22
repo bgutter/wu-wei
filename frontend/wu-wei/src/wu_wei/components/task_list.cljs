@@ -305,7 +305,7 @@
         ;;
         ;; The components
         ;;
-        [:div
+        [:div {:style {:width "100%"}}
          [task-graph entity-cache-atom selected-id-atom]
          [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"

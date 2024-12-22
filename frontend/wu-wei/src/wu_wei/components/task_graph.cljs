@@ -108,8 +108,11 @@
       (fn [this]
         (letfn
             [(handler-func [_ _ _ _]
-               (draw-task-graph @entity-cache-atom @selected-task-id-atom this
-                                fn-on-node-click))]
+               (let
+                   [selected-id @selected-task-id-atom
+                    cache @entity-cache-atom]
+                 (draw-task-graph cache selected-id this
+                                  fn-on-node-click)))]
           (add-watch entity-cache-atom
                      :task-map-redraw
                      handler-func)
@@ -130,5 +133,5 @@
 
       :reagent-render
       (fn []
-         [:svg {:style {:width "700px" :height "100px"}}])})))
+         [:svg {:style {:width "100%" :height "100px"}}])})))
 
