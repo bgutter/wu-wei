@@ -8,6 +8,7 @@
             [wu-wei.entities :as entities]
             [wu-wei.util :as util]
             [wu-wei.entities.caching :as entity-cache]
+            [wu-wei.components.task-graph :refer [task-graph]]
             [cljsjs.react-flip-move]))
 
 (defn task-box-keygen [task-id]
@@ -304,7 +305,9 @@
         ;;
         ;; The components
         ;;
-        [(r/adapt-react-class js/FlipMove)
+        [:div
+         [task-graph entity-cache-atom selected-id-atom]
+         [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"
           :easing "ease-out"
           :appear-animation nil
@@ -369,4 +372,6 @@
             (doall
              (for [task (entity-cache/query entity-cache-state query-forms)]
                ^{:key (task-box-keygen (:id task))}
-               [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks])))))]))))
+               [task-list-item (:id task) entity-cache-atom selected-id-atom task-list-item-callbacks])))))]
+
+         ]))))

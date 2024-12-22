@@ -20,7 +20,8 @@
 
         g (-> svg
               (.append "g")
-              (.attr "transform" "translate(40,40)"))
+              ;; (.attr "transform" "translate(40,40)")
+              )
 
         container dom-node
 
@@ -30,7 +31,7 @@
 
         tree (-> js/d3
                  (.tree)
-                 (.size (clj->js [width height])))
+                 (.size (clj->js [height width])))
 
         hierarchical-task-data (letfn [(foo [task-id]
                                          (let [task (entity-cache/lookup-id cache task-id)]
@@ -94,7 +95,7 @@
                                         "start")))
               (.text (fn [d]
                        (-> d .-data .-summary))))]
-    nil))
+    (println "XxX" height width)))
 
 (defn task-graph [entity-cache-atom selected-task-id-atom]
   (r/create-class
@@ -129,5 +130,5 @@
 
       :reagent-render
       (fn []
-        [:svg {:style {:width "100%" :height "100%"}}])})))
+         [:svg {:style {:width "700px" :height "100px"}}])})))
 
