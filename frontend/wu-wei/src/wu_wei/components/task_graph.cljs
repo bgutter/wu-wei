@@ -57,6 +57,11 @@
                   (.enter)
                   (.append "path")
                   (.attr "class" "link")
+                  (.classed "link-downstream" (fn [d]
+                                                (let [task-id (-> d .-data .-data)]
+                                                  (entity-cache/descendent-task? cache
+                                                                                 (entity-cache/lookup-id cache task-id)
+                                                                                 (entity-cache/lookup-id cache hover-task-id)))))
                   (.attr "d" (fn [d]
                                (str
                                 "M" (.-y d) "," (.-x d)
@@ -73,14 +78,19 @@
                                   (if (.-children d)
                                     (str "node node--internal")
                                     (str "node node--leaf"))))
-                 (.attr "class" (fn [d]
-                                  (let
-                                      [task-id (-> d .-data .-data)]
-                                    (if (= task-id hover-task-id)
-                                      "node-hovered"))))
+                 (.classed "node-hovered" (fn [d]
+                                            (let [task-id (-> d .-data .-data)]
+                                              (= task-id hover-task-id))))
                  (.attr "transform" (fn [d]
                                       (str "translate(" (.-y d)"," (.-x d) ")")))
                  (.on "click" fn-on-click))
+
+        _ (-> node
+              (.classed "node-hovered-downstream" (fn [d]
+                                                    (let [task-id (-> d .-data .-data)]
+                                                      (entity-cache/descendent-task? cache
+                                                                                     (entity-cache/lookup-id cache task-id)
+                                                                                     (entity-cache/lookup-id cache hover-task-id))))))
 
         _ (-> node
               (.append "circle")

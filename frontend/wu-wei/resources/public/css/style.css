@@ -593,8 +593,14 @@ html, body {
 }
 
 .node-hovered circle {
-    stroke: steelblue;
-    fill: steelblue;
+    stroke: blue;
+    fill: blue;
+    stroke-width: 8px;
+}
+
+.node-hovered-downstream circle {
+    stroke: lightblue;
+    fill: lightblue;
     stroke-width: 5px;
 }
 
@@ -606,4 +612,10 @@ html, body {
   fill: none;
   stroke: #ccc;
   stroke-width: 2px;
+}
+
+.link-downstream {
+    fill: none;
+    stroke: lightblue;
+    stroke-width: 2px;
 }
