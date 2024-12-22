@@ -109,9 +109,10 @@
                                       (if (.-children d)
                                         "end"
                                         "start")))
-              (.text (fn [d]
-                       (-> d .-data .-summary))))]
-    ))
+              ;; (.text (fn [d]
+              ;;          (let [task-id (-> d .-data .-data)]
+              ;;            (:summary (entity-cache/lookup-id cache task-id)))))
+              )]))
 
 (defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom]
   (r/create-class
