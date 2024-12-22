@@ -161,10 +161,12 @@
        ;; The Expansion Panel
        [:div.ww-task-list-item-expansion-panel
 
-        ;; Expansion Panel: Text field for showing and editing the body field
-        [:div.ww-task-list-item-body
-         {:content-editable "true"
-          :data-ph "Enter a description..."}]
+        ;; ;; Expansion Panel: Text field for showing and editing the body field
+        ;; [:div.ww-task-list-item-body
+        ;;  {:content-editable "true"
+        ;;   :data-ph "Enter a description..."}]
+
+        [task-graph entity-cache-atom selected-id-atom hover-id-atom this-task-id]
 
         ;; Expansion Panel: Bottom Panel
         [(r/adapt-react-class js/FlipMove)
@@ -316,7 +318,6 @@
         ;; The components
         ;;
         [:div {:style {:width "100%" :overflow-y "scroll"}}
-         [task-graph entity-cache-atom selected-id-atom hover-id-atom]
          [(r/adapt-react-class js/FlipMove)
          {:class "ww-task-list"
           :easing "ease-out"

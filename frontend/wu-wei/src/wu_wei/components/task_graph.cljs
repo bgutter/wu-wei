@@ -30,7 +30,7 @@
         height (.-clientHeight container)
 
         tree (-> js/d3
-                 (.tree)
+                 (.cluster)
                  (.size (clj->js [height width])))
 
         hierarchical-task-data (letfn [(foo [task-id]
@@ -54,18 +54,13 @@
         ;; ugly, for side-effects
         _ (tree root)
 
-        max-depth (-> js/d3
-                      (.max (.leaves root)
-                            (fn [d] (.-y d))))
-
         _ (-> root
               (.each (fn [d]
-                       (set! (.-y d) (max 10 (min (- width 50) (.-y d))))
+                       (set! (.-y d) (max 100 (min (- width 150) (.-y d))))
                        (let [children (.-children d)]
                          (if (or (not children) (<= (count children) 0))
                            (do
-                             (js/console.log "Setting max depth")
-                             (set! (.-y d) (- width 50))))))))
+                             (set! (.-y d) (- width 150))))))))
 
         links (-> g
                   (.selectAll ".link")
@@ -109,7 +104,7 @@
 
         _ (-> node
               (.append "circle")
-              (.attr "r" 2.5)
+              (.attr "r" 3)
               (.on "click" fn-on-click)
               (.on "mouseenter" fn-on-mouse-enter)
               (.on "mouseleave" fn-on-mouse-leave))
@@ -124,68 +119,81 @@
               (.style "text-anchor" (fn [d]
                                       (if (.-children d)
                                         "end"
-                                        "start"))))
-              ;; (.text (fn [d]
-              ;;          (let [task-id (-> d .-data .-data)]
-              ;;            (:summary (entity-cache/lookup-id cache task-id)))))
+                                        "start")))
+              (.text (fn [d]
+                       (let [task-id (-> d .-data .-data)
+                             summary (:summary (entity-cache/lookup-id cache task-id))]
+                         (if (> (count summary) 15)
+                           (str (subs summary 0 13) "...")
+                           summary))))
+              (.style "text-anchor" "center")
+                  (.on "click" fn-on-click)
+                  (.on "mouseenter" fn-on-mouse-enter)
+                  (.on "mouseleave" fn-on-mouse-leave))
 
         ]))
 
-(defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom]
+(defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom this-task-item-id]
   (r/create-class
-   (letfn
-       [(fn-on-node-click [event data]
-          (let [task-id (-> data .-data .-data)]
-            (reset! selected-task-id-atom task-id)))
-        (fn-on-mouse-enter [event data]
-          (js/console.log event)
-          (let [task-id (-> data .-data .-data)]
-            (if (not (= task-id @hover-id-atom))
-              (reset! hover-id-atom task-id))))
-        (fn-on-mouse-leave [event data]
-          (js/console.log event)
-          (reset! hover-id-atom nil))]
-     {:component-will-mount
-      (fn [this]
+   (let
+       [watcher-kw (keyword (str "task-map-redraw-" this-task-item-id))]
+     (letfn
+         [(fn-on-node-click [event data]
+            (let [task-id (-> data .-data .-data)]
+              (reset! selected-task-id-atom task-id)))
+          (fn-on-mouse-enter [event data]
+            (let [task-id (-> data .-data .-data)]
+              (if (not (= task-id @hover-id-atom))
+                (reset! hover-id-atom task-id))))
+          (fn-on-mouse-leave [event data]
+            (reset! hover-id-atom nil))]
+
+       {:component-will-mount
+        (fn [this]
         (letfn
-            [(handler-func [_ _ _ _]
+            [(handler-func [_ _ old-state new-state]
                (let
                    [selected-id @selected-task-id-atom
                     cache @entity-cache-atom]
-                 (draw-task-graph cache
-                                  selected-id
-                                  @hover-id-atom
-                                  this
-                                  fn-on-node-click
-                                  fn-on-mouse-enter
-                                  fn-on-mouse-leave)))]
+                 (if (= selected-id this-task-item-id)
+                   (draw-task-graph cache
+                                    selected-id
+                                    @hover-id-atom
+                                    this
+                                    fn-on-node-click
+                                    fn-on-mouse-enter
+                                    fn-on-mouse-leave))))]
           (add-watch entity-cache-atom
-                     :task-map-redraw
+                     watcher-kw
                      handler-func)
           (add-watch selected-task-id-atom
-                     :task-map-redraw
-                     handler-func)
+                     watcher-kw
+                     (fn [a1 a2 a3 a4]
+                       (println (str "SELECTION CHANGED " a3 " -> " a4))
+                       (handler-func a1 a2 a3 a4)))
           (add-watch hover-id-atom
-                     :task-map-redraw
+                     watcher-kw
                      handler-func)))
 
       :component-will-unmount
       (fn [this]
         (remove-watch entity-cache-atom
-                      :task-map-redraw)
+                      watcher-kw)
         (remove-watch selected-task-id-atom
-                      :task-map-redraw)
+                      watcher-kw)
         (remove-watch hover-id-atom
-                      :task-map-redraw))
+                      watcher-kw))
       :component-did-mount
       (fn [this]
         (draw-task-graph @entity-cache-atom
                          @selected-task-id-atom
                          @hover-id-atom
                          this
-                         fn-on-node-click))
+                         fn-on-node-click
+                         fn-on-mouse-enter
+                         fn-on-mouse-leave))
 
       :reagent-render
       (fn []
-         [:svg {:style {:width "100%" :height "100px"}}])})))
+         [:svg {:style {:width "100%" :height "100%"}}])}))))
 

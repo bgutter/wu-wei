@@ -193,6 +193,8 @@ html, body {
     width: 100%;
     height: 0px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     /* opacity: 0%; */
     /* transition: opacity 0.25s 0.25s ease-out; */
     /* transition: height 0.25s ease-out; */
@@ -214,7 +216,7 @@ html, body {
 /* } */
 
 .ww-task-list-context-item--final .ww-task-list-item-expansion-panel {
-    height: 100%;
+    height: 35vh;
 }
 
 .ww-task-list-expansion-panel-section-header-div {
@@ -608,6 +610,10 @@ html, body {
     stroke: lightblue;
     fill: lightblue;
     stroke-width: 7px;
+}
+
+.node-hovered text {
+    cursor: pointer;
 }
 
 .node text {
