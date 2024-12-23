@@ -12,7 +12,7 @@
 (defn draw-task-graph
   [cache root-task-id hover-task-id component fn-on-click fn-on-mouse-enter fn-on-mouse-leave]
   (let [dom-node (rd/dom-node component)
-        svg (-> js/d3 (.select dom-node))
+        svg (-> js/d3 (.select dom-node) (.select "svg"))
 
         _ (-> svg
               (.selectAll "g")
@@ -194,6 +194,7 @@
                          fn-on-mouse-leave))
 
       :reagent-render
-      (fn []
-         [:svg {:style {:width "100%" :height "100%"}}])}))))
+        (fn []
+          [:div.ww-task-graph
+           [:svg {:style {:width "100%" :height "100%"}}]])}))))
 

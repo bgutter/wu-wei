@@ -9,6 +9,7 @@
             [wu-wei.util :as util]
             [wu-wei.entities.caching :as entity-cache]
             [wu-wei.components.task-graph :refer [task-graph]]
+            [wu-wei.components.tabbed-panel :refer [tabbed-panel]]
             [cljsjs.react-flip-move]))
 
 (defn task-box-keygen [task-id]
@@ -161,12 +162,14 @@
        ;; The Expansion Panel
        [:div.ww-task-list-item-expansion-panel
 
-        ;; ;; Expansion Panel: Text field for showing and editing the body field
-        ;; [:div.ww-task-list-item-body
-        ;;  {:content-editable "true"
-        ;;   :data-ph "Enter a description..."}]
+        [tabbed-panel
+         {"Subtask Graph"
+          [task-graph entity-cache-atom selected-id-atom hover-id-atom this-task-id]
 
-        [task-graph entity-cache-atom selected-id-atom hover-id-atom this-task-id]
+          "Description"
+          [:div.ww-task-list-item-body
+           {:content-editable "true"
+            :data-ph "Enter a description..."}]}]
 
         ;; Expansion Panel: Bottom Panel
         [(r/adapt-react-class js/FlipMove)
