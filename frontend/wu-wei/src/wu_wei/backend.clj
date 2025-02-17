@@ -12,7 +12,15 @@
 (def app-data-path
   "Where entity data will be stored as an EDN.
   This will be deprecated soon -- we're going to graduate to a database eventually."
-  (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
+  ;; (str (System/getProperty "user.home") "/wu-wei/task-data.edn")
+  (str "/data/task-data.edn"))
+
+(defn ensure-app-data-exists
+  "Checks if file at =app-data-path= exists, creates an empty EDN file if not."
+  []
+  (when-not (.exists (clojure.java.io/file app-data-path))
+    (with-open [writer (clojure.java.io/writer app-data-path)]
+      (-> writer (.write "{}")))))
 
 (add-watch entity-cache-atom
            :update-disk-for-entity-cache-atom
@@ -24,6 +32,7 @@
 (defn read-entities-from-disk
   "Load all backend state from `app-data-path'"
   []
+  (ensure-app-data-exists)
   (let
       [entities-cache (clojure.edn/read-string (slurp app-data-path))]
     (reset! entity-cache-atom entities-cache)))

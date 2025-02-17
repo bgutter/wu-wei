@@ -1,3 +1,4 @@
 ^{:css-dirs ["resources/public/css"]
- :ring-handler wu-wei.backend/handler}
+  :ring-handler wu-wei.backend/handler
+  :open-url false}
 {:main wu-wei.core}
