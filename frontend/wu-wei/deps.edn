@@ -7,11 +7,11 @@
         compojure/compojure {:mvn/version "1.7.1"}
         cljsjs/react-flip-move {:mvn/version "2.9.17-0"}
         cljsjs/d3 {:mvn/version "7.6.1-0"}}
- :paths ["src" "target" "resources" "test"]
+ :paths ["src" "target" "resources"]
  :aliases
  {:cider-cljs
   {:extra-deps
-   {org.clojure/clojurescript {:mvn/version "1.10.339"}
+   {org.clojure/clojurescript {:mvn/version "1.11.54"}
     cider/cider-nrepl {:mvn/version "0.52.1"}
     cider/piggieback {:mvn/version "0.6.0"}}
    :main-opts ["-m" "nrepl.cmdline"

@@ -1,8 +1,8 @@
 (ns wu-wei.entities
   (:require
    [wu-wei.util :as util]
-   [clojure.spec.alpha :as s]
-   [clojure.spec.test.alpha :as st]
+   ;; [clojure.spec.alpha :as s]
+   ;; [clojure.spec.test.alpha :as st]
    [clojure.set :refer [subset?]]))
 
 ;;
