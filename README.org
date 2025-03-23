@@ -6,6 +6,21 @@ Wu-Wei is a task management system written in ClojureScript.
 
 *Under Construction!* :)
 
+* Launching Development Server
+
+Build and run Docker image
+
+#+begin_src sh
+  sh build.sh
+  sh run-docker.sh
+#+end_src
+
+Open browser to localhost:9500
+
+In emacs, run =m-X cider-connect-clj&cljs=, with endpoint localhost, port 7888, and build wu-wei.
+
+Go forth and code.
+
 * What does Wu-Wei do differently?
 
 ** Iterative Planning
