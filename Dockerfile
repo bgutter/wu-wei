@@ -11,13 +11,12 @@ COPY . .
 # This should be cleaned up some day
 WORKDIR ./frontend/wu-wei
 
+# Expose ports for fighwheel, nrepl, and HTTP development server hosting
+EXPOSE 3449 7888 9500
+
 # Install dependencies
 RUN clojure -Stree
 
-# Expose a port for the app
-EXPOSE 3449
-EXPOSE 9500
-
 # Set the startup command
-CMD [ "clj", "-M", "--main",  "figwheel.main", "--build", "wu-wei", "--repl" ]
-
+# DEVELOPMENT ONLY -- OPENS PORT FOR REMOTE CODE EXECUTION WITHOUT AUTHENTICATION
+CMD [ "clj", "-M:cider-cljs" ]

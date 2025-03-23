@@ -12,7 +12,7 @@
 (def app-data-path
   "Where entity data will be stored as an EDN.
   This will be deprecated soon -- we're going to graduate to a database eventually."
-  ;; (str (System/getProperty "user.home") "/wu-wei/task-data.edn")
+  ;; (str (System/getProperty "user.home") "/wu-wei/task-data.edn"))
   (str "/data/task-data.edn"))
 
 (defn ensure-app-data-exists
