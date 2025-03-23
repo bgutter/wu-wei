@@ -14,8 +14,8 @@ WORKDIR ./frontend/wu-wei
 # Expose ports for fighwheel, nrepl, and HTTP development server hosting
 EXPOSE 3449 7888 9500
 
-# Install dependencies
-RUN clojure -Stree
+# Downlaod and install all dependencies
+RUN clojure -A:cider-cljs -Stree
 
 # Set the startup command
 # DEVELOPMENT ONLY -- OPENS PORT FOR REMOTE CODE EXECUTION WITHOUT AUTHENTICATION
