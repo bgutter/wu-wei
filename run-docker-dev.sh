@@ -6,6 +6,6 @@ docker run -t \
       --name wu-wei \
       -v ~/wu-wei:/data \
       -v ./frontend:/app/frontend \
-      wu-wei
+      wu-wei:dev-latest
 
 # Now on host system do M-x cider with cider-connect-clj&cljs

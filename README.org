@@ -11,15 +11,21 @@ Wu-Wei is a task management system written in ClojureScript.
 Build and run Docker image
 
 #+begin_src sh
-  sh build.sh
-  sh run-docker.sh
+  sh build-dev.sh
+  sh run-docker-dev.sh
 #+end_src
 
-Open browser to localhost:9500
+In emacs, run =m-X cider-connect-clj&cljs=, with endpoint =localhost=, port =7888=, and build =wu-wei=.
 
-In emacs, run =m-X cider-connect-clj&cljs=, with endpoint localhost, port 7888, and build wu-wei.
+Open browser to =localhost:9500=.
 
 Go forth and code.
+
+** Development Notes
+
+In dev mode, all the image does is start an nREPL server. Launching the web app through fighweel-main's dev server is initiated by emacs' CIDER library on connect. So be aware that you can't access the app in the browser until after emacs connects to the container.
+
+Finally, for whatever reason, you'll have to restart the container if the CIDER's CLJS nREPL connection is lost. It will fail to reconnect as long as figwheel is already running the =wu-wei= build. Just close the container, quit cider, restart the container, and restart cider. If you know a more elegant way to handle this, please let me know.. :)
 
 * What does Wu-Wei do differently?
 
