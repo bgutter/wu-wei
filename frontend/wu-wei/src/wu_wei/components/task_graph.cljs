@@ -196,5 +196,8 @@
       :reagent-render
         (fn []
           [:div.ww-task-graph
+           {:class (list
+                    (if (nil? @selected-task-id-atom)
+                      "ww-task-graph--hidden"))}
            [:svg {:style {:width "100%" :height "100%"}}]])}))))
 

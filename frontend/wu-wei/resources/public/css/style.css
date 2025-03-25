@@ -629,6 +629,10 @@ html, body {
     border-left: solid 1px lightgray;
 }
 
+.ww-task-graph--hidden {
+    width: 0%;
+}
+
 .ww-tabbed-panel {
     width: 100%;
     height: 100%;
