@@ -220,7 +220,8 @@ html, body {
 /* } */
 
 .ww-task-list-context-item--final .ww-task-list-item-expansion-panel {
-    height: 35vh;
+    /* height: 35vh; */
+    height: 100%;
 }
 
 .ww-task-list-expansion-panel-section-header-div {
@@ -591,10 +592,17 @@ html, body {
     color: rgb(80,80,80);
 }
 
+.ww-task-list-item-summary-ancestry-section {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+}
+
 .ww-task-graph {
     height: 100%;
     width: 100%;
     margin: 5px;
+    border-left: solid 1px lightgray;
 }
 
 .ww-tabbed-panel {

@@ -8,6 +8,7 @@
             [wu-wei.entities.caching :as entity-cache]
             [wu-wei.requests :as requests]
             [wu-wei.components.task-list :refer [task-list]]
+            [wu-wei.components.task-graph :refer [task-graph]]
             [cljsjs.react-flip-move]))
 
 ;;
@@ -191,15 +192,15 @@
   ""
   []
   [:div.ww-controls-panel
-   [:div "👤"]
+   ;; [:div "👤"]
    ;; [:div.ww-flexbox-spacer]
-   [:div
-    {:on-click #(reset! active-perspective :notes)}
-    "🗒️"]
+   ;; [:div
+   ;;  {:on-click #(reset! active-perspective :notes)}
+   ;;  "🗒️"]
    [:div
     {:on-click #(reset! active-perspective :task-list)}
      "☑️"]
-   [:div.ww-flexbox-spacer]
+   ;; [:div.ww-flexbox-spacer]
    [:div "⚙️"]])
 
 (defn notes-menu
@@ -337,7 +338,8 @@
                               :query-forms-atom task-list-query-forms-atom
                               :fn-new-entity new-entity!
                               :fn-update-entity update-entity!
-                              :fn-delete-entity delete-entity!}]]
+                              :fn-delete-entity delete-entity!}]
+                  [task-graph entity-cache-atom selected-task-id-atom hover-task-id-atom nil]]
       :notes     [:div.ww-notes-perspective
                   [notes-menu]
                   [notes-view]])]])

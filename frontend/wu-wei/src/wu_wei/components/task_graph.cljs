@@ -155,7 +155,7 @@
                (let
                    [selected-id @selected-task-id-atom
                     cache @entity-cache-atom]
-                 (if (= selected-id this-task-item-id)
+                 (if (or (nil? this-task-item-id) (= selected-id this-task-item-id))
                    (draw-task-graph cache
                                     selected-id
                                     @hover-id-atom

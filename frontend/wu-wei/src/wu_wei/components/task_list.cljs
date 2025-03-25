@@ -8,7 +8,7 @@
             [wu-wei.entities :as entities]
             [wu-wei.util :as util]
             [wu-wei.entities.caching :as entity-cache]
-            [wu-wei.components.task-graph :refer [task-graph]]
+            ;; [wu-wei.components.task-graph :refer [task-graph]]
             [wu-wei.components.tabbed-panel :refer [tabbed-panel]]
             [cljsjs.react-flip-move]))
 
@@ -105,6 +105,8 @@
           [:div.ww-task-list-item-checkbox
            "OPEN"])
 
+        [:div.ww-task-list-item-summary-ancestry-section
+
         ;; Editable display of task summary line
         [:div.ww-task-list-item-summary
          {:content-editable "true"
@@ -127,6 +129,7 @@
              (str
               (str/join " > " (map (comp :summary (partial entity-cache/lookup-id cache)) ancestry-ids))
               )))]
+         ]
 
         [:div.ww-flexbox-spacer]
 
@@ -162,14 +165,15 @@
        ;; The Expansion Panel
        [:div.ww-task-list-item-expansion-panel
 
-        [tabbed-panel
-         {"Subtask Graph"
-          [task-graph entity-cache-atom selected-id-atom hover-id-atom this-task-id]
+        ;; [tabbed-panel
+        ;;  {"Subtask Graph"
+        ;;   [task-graph entity-cache-atom selected-id-atom hover-id-atom this-task-id]
 
-          "Description"
+        ;;   "Description"
           [:div.ww-task-list-item-body
            {:content-editable "true"
-            :data-ph "Enter a description..."}]}]
+            :data-ph "Enter a description..."}]
+        ;; }]
 
         ;; Expansion Panel: Bottom Panel
         [(r/adapt-react-class js/FlipMove)
