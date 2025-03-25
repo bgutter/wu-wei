@@ -330,6 +330,10 @@ html, body {
     padding: 5px 2px 5px 2px;
 }
 
+.ww-task-list-item--completed .ww-task-list-item-summary:not(:focus) {
+    text-decoration: line-through;
+}
+
 .ww-task-list-item-ancestry {
     /* width: 100%; */
     font-size: 0.8em;
@@ -350,12 +354,12 @@ html, body {
 .ww-task-list-item-checkbox {
     /* margin-right: 5px; */
     /* padding: 2px; */
-    padding: 0px 10px 5px 0px;
-    margin-right: 1em;
+    /* padding: 0px 10px 5px 0px; */
+    /* margin-right: 1em; */
     font-size: 1em;
     font-weight: bold;
-    width: 0.5em;
-    height: 1em;
+    width: 15px;
+    height: 15px;
     border: solid 2px blue;
     border-radius: 5px;
     color: rgb(0,0,0,0.0);
@@ -363,10 +367,26 @@ html, body {
     text-align: center;
 }
 
+.ww-task-list-item-checkbox-checkmark {
+    display: none;
+    color: gray;
+}
+.ww-task-list-item--completed .ww-task-list-item-checkbox-checkmark:not(:hover) {
+    display: inline;
+    color: gray;
+}
+
 .ww-task-list-context-item--final .ww-task-list-item-checkbox, .ww-task-list-context-item .ww-task-list-item-checkbox, .ww-task-list-item-checkbox:hover {
     width: 5em;
     background: rgb( 0, 0, 255, 0.2);
     color: blue;
+    transition: all 0.25s ease-out;
+    cursor: pointer;
+}
+.ww-task-list-item--completed .ww-task-list-context-item--final .ww-task-list-item-checkbox, .ww-task-list-item--completed .ww-task-list-context-item .ww-task-list-item-checkbox, .ww-task-list-item--completed .ww-task-list-item-checkbox:hover {
+    width: 5em;
+    background: rgb( 200, 200, 200, 0.2);
+    color: gray;
     transition: all 0.25s ease-out;
     cursor: pointer;
 }
@@ -492,6 +512,10 @@ html, body {
 /* .ww-task-list-item--selected .ww-task-list-item-mini-button { */
 /*     top: 0px; */
 /* } */
+
+.ww-task-list-item--completed .ww-task-list-item-checkbox {
+    border: solid 2px lightgray;
+}
 
 .ww-task-list-item-mini-button:hover {
     cursor: pointer;

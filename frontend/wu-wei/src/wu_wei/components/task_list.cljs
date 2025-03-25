@@ -90,7 +90,9 @@
                      (if (entity-cache/descendent-task? cache
                                                         (entity-cache/lookup-id cache this-task-id)
                                                         (entity-cache/lookup-id cache hover-id))
-                       "ww-task-list-item--downstream-hovered"))}
+                       "ww-task-list-item--downstream-hovered")
+                     (if (= (:status this-task) :done)
+                       "ww-task-list-item--completed"))}
 
        [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)
                                           :on-mouse-enter #(reset! hover-id-atom this-task-id)
@@ -103,7 +105,18 @@
           )
         (if (not (= display-mode :context))
           [:div.ww-task-list-item-checkbox
-           "OPEN"])
+           {:on-click
+            (fn [evnt]
+              (on-modify-entity
+               (entities/set-status this-task
+                                    (if (= (:status this-task) :open)
+                                      :done
+                                      :open)))
+              (-> evnt .stopPropagation))}
+           [:div.ww-task-list-item-checkbox-checkmark
+            "✔"]
+           [:div.ww-task-list-item-checkbox-status
+            (str/upper-case (name (:status this-task)))]])
 
         [:div.ww-task-list-item-summary-ancestry-section
 
@@ -387,7 +400,11 @@
               [task-creation-box-itm]
 
               (doall
-               (for [task (entity-cache/query entity-cache-state query-forms)]
+               (for [task (let
+                              [unsorted-tasks (entity-cache/query entity-cache-state query-forms)
+                               [done-tasks open-tasks] (partition-by (comp nil? #{:open} :status)
+                                                                     (sort-by :status unsorted-tasks))]
+                            (concat open-tasks done-tasks))]
                  ^{:key (task-box-keygen (:id task))}
                  [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks])))))]
 

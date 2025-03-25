@@ -62,6 +62,10 @@
   ;; expect encoding, formatting, checking, etc
   (merge entity {:summary new-summary}))
 
+(defn set-status
+  [entity new-status]
+  (merge entity {:status new-status}))
+
 (defn subtask?
   "Is first task a subtask of the other?"
   [task-a task-b]
