@@ -2,7 +2,7 @@
 
 Wu-Wei is a task management system written in ClojureScript.
 
-[[file:ww-screenshot.png]]
+[[file:ww.gif]]
 
 *Under Construction!* :)
 
