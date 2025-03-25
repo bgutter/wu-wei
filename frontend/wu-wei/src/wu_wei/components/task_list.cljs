@@ -378,14 +378,14 @@
               ;; The direct subtasks
               [(task-list-divider "Direct Subtasks")]
               (doall
-               (for [task direct-subtasks]
+               (for [task (util/tasks-sort-open-first direct-subtasks)]
                  ^{:key (task-box-keygen (:id task))}
                  [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks]))
 
               ;; The indirect subtasks
               [(task-list-divider "Indirect Subtasks")]
               (doall
-               (for [task indirect-subtasks]
+               (for [task (util/tasks-sort-open-first indirect-subtasks)]
                  ^{:key (task-box-keygen (:id task))}
                  [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks]))))
 
@@ -400,11 +400,7 @@
               [task-creation-box-itm]
 
               (doall
-               (for [task (let
-                              [unsorted-tasks (entity-cache/query entity-cache-state query-forms)
-                               [done-tasks open-tasks] (partition-by (comp nil? #{:open} :status)
-                                                                     (sort-by :status unsorted-tasks))]
-                            (concat open-tasks done-tasks))]
+               (for [task (util/tasks-sort-open-first (entity-cache/query entity-cache-state query-forms))]
                  ^{:key (task-box-keygen (:id task))}
                  [task-list-item (:id task) entity-cache-atom selected-id-atom hover-id-atom task-list-item-callbacks])))))]
 
