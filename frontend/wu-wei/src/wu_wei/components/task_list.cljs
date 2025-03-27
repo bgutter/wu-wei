@@ -91,7 +91,7 @@
                                                         (entity-cache/lookup-id cache this-task-id)
                                                         (entity-cache/lookup-id cache hover-id))
                        "ww-task-list-item--downstream-hovered")
-                     (if (= (:status this-task) :done)
+                     (if (entities/task-is-completed? this-task)
                        "ww-task-list-item--completed"))}
 
        [:div.ww-task-list-item-top-panel {:on-click #(reset! selected-id-atom this-task-id)

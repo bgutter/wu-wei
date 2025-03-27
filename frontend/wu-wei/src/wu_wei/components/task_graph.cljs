@@ -10,7 +10,14 @@
 
 
 (defn draw-task-graph
-  [cache root-task-id hover-task-id component fn-on-click fn-on-mouse-enter fn-on-mouse-leave]
+  [cache
+   root-task-id
+   hover-task-id
+   component
+   fn-on-click
+   fn-on-mouse-enter
+   fn-on-mouse-leave
+   should-hide-completed-nodes]
   (let [dom-node (rd/dom-node component)
         svg (-> js/d3 (.select dom-node) (.select "svg"))
 
@@ -35,15 +42,17 @@
 
         hierarchical-task-data (letfn [(foo [task-id]
                                          (let [task (entity-cache/lookup-id cache task-id)]
-                                           (if (> (count (:subtask-ids task)) 0)
-                                             (clj->js {:data task-id
-                                                       :name (str "NODE " task-id)
-                                                       :children (into []
-                                                                       (for [sid (:subtask-ids task)]
-                                                                         (foo sid)))})
-                                             (clj->js {:data task-id
-                                                       :name (str "NODE " task-id)
-                                                       :children []}))))]
+                                           (clj->js
+                                            {:data task-id
+                                             :name (str "NODE " task-id)
+                                             :children (into []
+                                                             (keep identity
+                                                                   (for [sid (entities/task-subtask-ids task)]
+                                                                     (let [child-task (entity-cache/lookup-id cache sid)]
+                                                                       (if (or (not should-hide-completed-nodes)
+                                                                               (entities/task-incomplete? child-task)
+                                                                               (entities/task-has-subtasks? child-task))
+                                                                         (foo sid))))))})))]
                                  (foo root-task-id))
 
         root (-> js/d3
@@ -136,7 +145,8 @@
 (defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom this-task-item-id]
   (r/create-class
    (let
-       [watcher-kw (keyword (str "task-map-redraw-" this-task-item-id))]
+       [watcher-kw (keyword (str "task-map-redraw-" this-task-item-id))
+        should-hide-completed-nodes-atom (r/atom false)]
      (letfn
          [(fn-on-node-click [event data]
             (let [task-id (-> data .-data .-data)]
@@ -162,7 +172,8 @@
                                     this
                                     fn-on-node-click
                                     fn-on-mouse-enter
-                                    fn-on-mouse-leave))))]
+                                    fn-on-mouse-leave
+                                    @should-hide-completed-nodes-atom))))]
           (add-watch entity-cache-atom
                      watcher-kw
                      handler-func)
@@ -191,7 +202,8 @@
                          this
                          fn-on-node-click
                          fn-on-mouse-enter
-                         fn-on-mouse-leave))
+                         fn-on-mouse-leave
+                         @should-hide-completed-nodes-atom))
 
       :reagent-render
         (fn []
@@ -199,5 +211,15 @@
            {:class (list
                     (if (nil? @selected-task-id-atom)
                       "ww-task-graph--hidden"))}
-           [:svg {:style {:width "100%" :height "100%"}}]])}))))
+           [:div.ww-task-graph-svg-container
+            [:svg {:style {:width "100%" :height "100%"}}]]
+           [:div.ww-task-graph-controls-panel
+            [:div.ww-task-list-item-mini-button
+             {:on-click (fn [evnt]
+                          (swap! should-hide-completed-nodes-atom not))}
+             [:div.ww-task-list-item-mini-button-label
+              (if @should-hide-completed-nodes-atom
+                "Show All"
+                "Hide Completed")]]
+            [:div.ww-flexbox-spacer]]])}))))
 

@@ -66,6 +66,27 @@
   [entity new-status]
   (merge entity {:status new-status}))
 
+(defn task-is-completed?
+  [entity]
+  (#{:done} (:status entity)))
+
+(defn task-incomplete?
+  [entity]
+  (not (task-is-completed? entity)))
+
+(defn task-subtask-ids
+  [entity]
+  (let [subtask-ids (:subtask-ids entity)]
+    (if (nil? subtask-ids)
+      []
+      subtask-ids)))
+
+(defn task-has-subtasks?
+  [entity]
+  (let [subtask-ids (:subtask-ids entity)]
+    (and subtask-ids
+         (> (count subtask-ids) 0))))
+
 (defn subtask?
   "Is first task a subtask of the other?"
   [task-a task-b]
