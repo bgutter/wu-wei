@@ -174,6 +174,9 @@
                                     fn-on-mouse-enter
                                     fn-on-mouse-leave
                                     @should-hide-completed-nodes-atom))))]
+          (add-watch should-hide-completed-nodes-atom
+                     watcher-kw
+                     handler-func)
           (add-watch entity-cache-atom
                      watcher-kw
                      handler-func)
@@ -193,6 +196,8 @@
         (remove-watch selected-task-id-atom
                       watcher-kw)
         (remove-watch hover-id-atom
+                      watcher-kw)
+        (remove-watch should-hide-completed-nodes-atom
                       watcher-kw))
       :component-did-mount
       (fn [this]
