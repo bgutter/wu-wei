@@ -89,7 +89,7 @@
                                 " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
                                 " " (.-y (.-parent d)) "," (.-x (.-parent d))))))
 
-        node (-> g
+        node-selection (-> g
                  (.selectAll ".node")
                  (.data (-> root (.descendants)))
                  (.enter)
@@ -102,45 +102,46 @@
                                             (let [task-id (-> d .-data .-data)]
                                               (= task-id hover-task-id))))
                  (.attr "transform" (fn [d]
-                                      (str "translate(" (.-y d)"," (.-x d) ")"))))
+                                      (str "translate(" (.-y d)"," (.-x d) ")"))))]
 
-        _ (-> node
-              (.classed "node-hovered-downstream" (fn [d]
-                                                    (let [task-id (-> d .-data .-data)]
-                                                      (entity-cache/descendent-task? cache
-                                                                                     (entity-cache/lookup-id cache task-id)
-                                                                                     (entity-cache/lookup-id cache hover-task-id))))))
+    ;; Add context highlighting
+    (-> node-selection
+        (.classed "node-hovered-downstream" (fn [d]
+                                              (let [task-id (-> d .-data .-data)]
+                                                (entity-cache/descendent-task? cache
+                                                                               (entity-cache/lookup-id cache task-id)
+                                                                               (entity-cache/lookup-id cache hover-task-id))))))
 
-        _ (-> node
-              (.append "circle")
-              (.attr "r" 3)
-              (.on "click" fn-on-click)
-              (.on "mouseenter" fn-on-mouse-enter)
-              (.on "mouseleave" fn-on-mouse-leave))
+    ;; Add node dots
+    (-> node-selection
+        (.append "circle")
+        (.attr "r" 3)
+        (.on "click" fn-on-click)
+        (.on "mouseenter" fn-on-mouse-enter)
+        (.on "mouseleave" fn-on-mouse-leave))
 
-        _ (-> node
-              (.append "text")
-              (.attr "dy" 3)
-              (.attr "x" (fn [d]
-                           (if (.-children d)
-                             -8
-                             8)))
-              (.style "text-anchor" (fn [d]
-                                      (if (.-children d)
-                                        "end"
-                                        "start")))
-              (.text (fn [d]
-                       (let [task-id (-> d .-data .-data)
-                             summary (:summary (entity-cache/lookup-id cache task-id))]
-                         (if (> (count summary) 15)
-                           (str (subs summary 0 13) "...")
-                           summary))))
-              (.style "text-anchor" "center")
-                  (.on "click" fn-on-click)
-                  (.on "mouseenter" fn-on-mouse-enter)
-                  (.on "mouseleave" fn-on-mouse-leave))
-
-        ]))
+    ;; Add node labels
+    (-> node-selection
+        (.append "text")
+        (.attr "dy" 3)
+        (.attr "x" (fn [d]
+                     (if (.-children d)
+                       -8
+                       8)))
+        (.style "text-anchor" (fn [d]
+                                (if (.-children d)
+                                  "end"
+                                  "start")))
+        (.text (fn [d]
+                 (let [task-id (-> d .-data .-data)
+                       summary (:summary (entity-cache/lookup-id cache task-id))]
+                   (if (> (count summary) 15)
+                     (str (subs summary 0 13) "...")
+                     summary))))
+        (.style "text-anchor" "center")
+        (.on "click" fn-on-click)
+        (.on "mouseenter" fn-on-mouse-enter)
+        (.on "mouseleave" fn-on-mouse-leave))))
 
 (defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom this-task-item-id]
   (r/create-class
