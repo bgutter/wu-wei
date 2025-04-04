@@ -17,6 +17,12 @@
     (-> svg
         (.append "g"))))
 
+(defn get-existing-container-group [container]
+  (-> js/d3
+      (.select container)
+      (.select "svg")
+      (.select "g")))
+
 (defn hierarchical-task-data [cache root-task-id should-hide-completed-nodes]
   "Create a hierarchy of task data in the format expected by D3"
   (letfn [(recursive-tree-builder [task-id]
@@ -64,61 +70,102 @@
 
 (defn draw-links [cache group root hover-task-id]
   "Create .link elements in graph."
-  (-> group
-      (.selectAll ".link")
-      (.data (-> root (.descendants) (.slice 1)))
-      (.enter)
-      (.append "path")
-      (.attr "class" "link")
-      (.classed "link-downstream" (fn [d]
-                                    (let [task-id (-> d .-data .-data)]
-                                      (entity-cache/descendent-task? cache
-                                                                     (entity-cache/lookup-id cache task-id)
-                                                                     (entity-cache/lookup-id cache hover-task-id)))))
-      (.attr "d" (fn [d]
-                   (str
-                    "M" (.-y d) "," (.-x d)
-                    "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
-                    " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
-                    " " (.-y (.-parent d)) "," (.-x (.-parent d)))))))
+  (let
+      [link-selection
+       (-> group
+           (.selectAll ".link")
+           (.data (-> root (.descendants) (.slice 1))
+                  (fn [d]
+                    (.-data (.-data d)))))
+
+       new-links
+       (-> link-selection
+           (.enter))]
+
+    ;; Create new links
+    (-> new-links
+        (.append "path")
+        (.attr "class" "link")
+        (.classed "link-downstream" (fn [d]
+                                      (let [task-id (-> d .-data .-data)]
+                                        (entity-cache/descendent-task? cache
+                                                                       (entity-cache/lookup-id cache task-id)
+                                                                       (entity-cache/lookup-id cache hover-task-id)))))
+        (.attr "d" (fn [d]
+                     (str
+                      "M" (.-y d) "," (.-x d)
+                      "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
+                      " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
+                      " " (.-y (.-parent d)) "," (.-x (.-parent d))))))
+
+    ;; Update links
+    (-> link-selection
+        (.classed "link-downstream" (fn [d]
+                                      (let [task-id (-> d .-data .-data)]
+                                        (entity-cache/descendent-task? cache
+                                                                       (entity-cache/lookup-id cache task-id)
+                                                                       (entity-cache/lookup-id cache hover-task-id)))))
+        (.transition)
+        (.ease (.-easeQuadOut js/d3))
+        (.duration 250)
+        (.attr "d" (fn [d]
+                     (str
+                      "M" (.-y d) "," (.-x d)
+                      "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
+                      " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
+                      " " (.-y (.-parent d)) "," (.-x (.-parent d))))))
+
+    ;; clear old ones
+    (-> link-selection
+        (.exit)
+        (.remove))))
 
 (defn draw-nodes [cache group root hover-task-id fn-on-click fn-on-mouse-enter fn-on-mouse-leave]
   "Create .node elements in graph."
   (let
-      [node-selection (-> group
-                          (.selectAll ".node")
-                          (.data (-> root (.descendants)))
-                          (.enter)
-                          (.append "g")
-                          (.attr "class" (fn [d]
-                                           (if (.-children d)
-                                             (str "node node--internal")
-                                             (str "node node--leaf"))))
-                          (.classed "node-hovered" (fn [d]
-                                                     (let [task-id (-> d .-data .-data)]
-                                                       (= task-id hover-task-id))))
-                          (.attr "transform" (fn [d]
-                                               (str "translate(" (.-y d)"," (.-x d) ")"))))]
-
-    ;; Add context highlighting
-    (-> node-selection
-        (.classed "node-hovered-downstream"
+      [node-selection
+       (-> group
+           (.selectAll ".node")
+           (.data (-> root (.descendants))
                   (fn [d]
-                    (let [task-id (-> d .-data .-data)]
-                      (entity-cache/descendent-task? cache
-                                                     (entity-cache/lookup-id cache task-id)
-                                                     (entity-cache/lookup-id cache hover-task-id))))))
+                    (.-data (.-data d)))))
 
-    ;; Add node dots
+       new-nodes
+       (-> node-selection
+           (.enter))
+
+       new-nodes-groups
+       (-> new-nodes
+           (.append "g")
+           (.attr "class" (fn [d]
+                            (if (.-children d)
+                              (str "node node--internal")
+                              (str "node node--leaf"))))
+           (.attr "transform" (fn [d]
+                             (str "translate(" (.-y d)"," (.-x d) ")")))
+           (.classed "node-hovered" (fn [d]
+                                      (let [task-id (-> d .-data .-data)]
+                                        (= task-id hover-task-id)))))]
+
+    ;; Fade in new nodes -- not old ones
+    (-> new-nodes-groups
+        (.transition)
+        (.ease (.-easeQuadOut js/d3))
+        (.duration 250)
+        (.attr "opacity" 1))
     (-> node-selection
+        (.attr "opacity" 1))
+
+    ;; Add circle
+    (-> new-nodes-groups
         (.append "circle")
         (.attr "r" 3)
         (.on "click" fn-on-click)
         (.on "mouseenter" fn-on-mouse-enter)
         (.on "mouseleave" fn-on-mouse-leave))
 
-    ;; Add node labels
-    (-> node-selection
+    ;; Add label
+    (-> new-nodes-groups
         (.append "text")
         (.attr "dy" 3)
         (.attr "x" (fn [d]
@@ -138,9 +185,33 @@
         (.style "text-anchor" "center")
         (.on "click" fn-on-click)
         (.on "mouseenter" fn-on-mouse-enter)
-        (.on "mouseleave" fn-on-mouse-leave))))
+        (.on "mouseleave" fn-on-mouse-leave))
 
-(defn draw-task-graph
+    ;; Move existing nodes
+    (-> node-selection
+        (.transition)
+        (.ease (.-easeQuadOut js/d3))
+        (.duration 250)
+        (.attr "transform" (fn [d]
+                             (str "translate(" (.-y d)"," (.-x d) ")"))))
+
+    ;; Add context highlighting
+    (-> node-selection
+        (.classed "node-hovered" (fn [d]
+                                      (let [task-id (-> d .-data .-data)]
+                                        (= task-id hover-task-id))))
+        (.classed "node-hovered-downstream"
+                  (fn [d]
+                    (let [task-id (-> d .-data .-data)]
+                      (entity-cache/descendent-task? cache
+                                                     (entity-cache/lookup-id cache task-id)
+                                                     (entity-cache/lookup-id cache hover-task-id))))))
+
+    (-> node-selection
+        (.exit)
+        (.remove))))
+
+(defn initialize-task-graph
   [cache
    root-task-id
    hover-task-id
@@ -151,6 +222,23 @@
    should-hide-completed-nodes]
   (let [container (rd/dom-node component)
         group (clear-container-create-group container)
+        root (make-cluster-hierarchy container
+                                     (hierarchical-task-data cache root-task-id should-hide-completed-nodes))]
+
+    (draw-links cache group root hover-task-id)
+    (draw-nodes cache group root hover-task-id fn-on-click fn-on-mouse-enter fn-on-mouse-leave)))
+
+(defn update-task-graph
+  [cache
+   root-task-id
+   hover-task-id
+   component
+   fn-on-click
+   fn-on-mouse-enter
+   fn-on-mouse-leave
+   should-hide-completed-nodes]
+  (let [container (rd/dom-node component)
+        group (get-existing-container-group container)
         root (make-cluster-hierarchy container
                                      (hierarchical-task-data cache root-task-id should-hide-completed-nodes))]
 
@@ -173,59 +261,7 @@
           (fn-on-mouse-leave [event data]
             (reset! hover-id-atom nil))]
 
-       {:component-will-mount
-        (fn [this]
-        (letfn
-            [(handler-func [_ _ old-state new-state]
-               (let
-                   [selected-id @selected-task-id-atom
-                    cache @entity-cache-atom]
-                 (if (or (nil? this-task-item-id) (= selected-id this-task-item-id))
-                   (draw-task-graph cache
-                                    selected-id
-                                    @hover-id-atom
-                                    this
-                                    fn-on-node-click
-                                    fn-on-mouse-enter
-                                    fn-on-mouse-leave
-                                    @should-hide-completed-nodes-atom))))]
-          (add-watch should-hide-completed-nodes-atom
-                     watcher-kw
-                     handler-func)
-          (add-watch entity-cache-atom
-                     watcher-kw
-                     handler-func)
-          (add-watch selected-task-id-atom
-                     watcher-kw
-                     (fn [a1 a2 a3 a4]
-                       (println (str "SELECTION CHANGED " a3 " -> " a4))
-                       (handler-func a1 a2 a3 a4)))
-          (add-watch hover-id-atom
-                     watcher-kw
-                     handler-func)))
-
-      :component-will-unmount
-      (fn [this]
-        (remove-watch entity-cache-atom
-                      watcher-kw)
-        (remove-watch selected-task-id-atom
-                      watcher-kw)
-        (remove-watch hover-id-atom
-                      watcher-kw)
-        (remove-watch should-hide-completed-nodes-atom
-                      watcher-kw))
-      :component-did-mount
-      (fn [this]
-        (draw-task-graph @entity-cache-atom
-                         @selected-task-id-atom
-                         @hover-id-atom
-                         this
-                         fn-on-node-click
-                         fn-on-mouse-enter
-                         fn-on-mouse-leave
-                         @should-hide-completed-nodes-atom))
-
-      :reagent-render
+       {:reagent-render
         (fn []
           [:div.ww-task-graph
            {:class (list
@@ -241,5 +277,55 @@
               (if @should-hide-completed-nodes-atom
                 "Show All"
                 "Hide Completed")]]
-            [:div.ww-flexbox-spacer]]])}))))
+            [:div.ww-flexbox-spacer]]])
+
+        :component-did-mount
+        (fn [this]
+          (letfn
+              [(handler-func [_ _ old-state new-state]
+                 (let
+                     [selected-id @selected-task-id-atom
+                      cache @entity-cache-atom]
+                   (if (or (nil? this-task-item-id) (= selected-id this-task-item-id))
+                     (update-task-graph cache
+                                        selected-id
+                                        @hover-id-atom
+                                        this
+                                        fn-on-node-click
+                                        fn-on-mouse-enter
+                                        fn-on-mouse-leave
+                                        @should-hide-completed-nodes-atom))))]
+            (initialize-task-graph @entity-cache-atom
+                                   @selected-task-id-atom
+                                   @hover-id-atom
+                                   this
+                                   fn-on-node-click
+                                   fn-on-mouse-enter
+                                   fn-on-mouse-leave
+                                   @should-hide-completed-nodes-atom)
+            (add-watch should-hide-completed-nodes-atom
+                       watcher-kw
+                       handler-func)
+            (add-watch entity-cache-atom
+                       watcher-kw
+                       handler-func)
+            (add-watch selected-task-id-atom
+                       watcher-kw
+                       (fn [a1 a2 a3 a4]
+                         (println (str "SELECTION CHANGED " a3 " -> " a4))
+                         (handler-func a1 a2 a3 a4)))
+            (add-watch hover-id-atom
+                       watcher-kw
+                       handler-func)))
+
+        :component-will-unmount
+        (fn [this]
+          (remove-watch entity-cache-atom
+                        watcher-kw)
+          (remove-watch selected-task-id-atom
+                        watcher-kw)
+          (remove-watch hover-id-atom
+                        watcher-kw)
+          (remove-watch should-hide-completed-nodes-atom
+                        watcher-kw))}))))
 
