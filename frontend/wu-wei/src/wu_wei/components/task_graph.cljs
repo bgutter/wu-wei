@@ -266,7 +266,8 @@
           [:div.ww-task-graph
            {:class (list
                     (if (nil? @selected-task-id-atom)
-                      "ww-task-graph--hidden"))}
+                      "ww-task-graph--hidden"
+                      "ww-task-graph--visible"))}
            [:div.ww-task-graph-svg-container
             [:svg {:style {:width "100%" :height "100%"}}]]
            [:div.ww-task-graph-controls-panel
