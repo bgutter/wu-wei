@@ -79,7 +79,7 @@
     ;; Return the data
     root))
 
-(defn draw-links
+(defn update-links
   "Create .link elements in graph."
   [group root ctx]
   (let
@@ -158,6 +158,7 @@
     ;; Add a label as well
     (-> groups
         (.append "text")
+        (.classed "node-label-text" true)
         (.attr "dy" 3)
         (.attr "x" (fn [d]
                      (if (.-children d)
@@ -167,12 +168,6 @@
                                 (if (.-children d)
                                   "end"
                                   "start")))
-        (.text (fn [d]
-                 (let [task-id (-> d .-data .-data)
-                       summary (:summary (entity-cache/lookup-id (:entity-cache ctx) task-id))]
-                   (if (> (count summary) 15)
-                     (str (subs summary 0 13) "...")
-                     summary))))
         (.style "text-anchor" "center")
         (.on "click" (:fn-on-task-clicked ctx))
         (.on "mouseenter" (:fn-on-task-mouse-entered ctx))
@@ -188,7 +183,7 @@
     ;; Return the groups
     groups))
 
-(defn draw-nodes
+(defn update-nodes
   "Create .node elements in graph."
   [group root ctx]
   (let
@@ -216,6 +211,22 @@
         (.duration 250)
         (.attr "transform" (fn [d]
                              (str "translate(" (.-y d)"," (.-x d) ")"))))
+
+    ;; Update ellipses
+    (-> node-selection
+        (.select ".node-label-text")
+        (.text (fn [d]
+                 (let [task-id (-> d .-data .-data)
+                       summary (:summary (entity-cache/lookup-id (:entity-cache ctx) task-id))]
+                   (if (and (> (count summary) 15)
+                            (not (= (:hover-task-id ctx) task-id)))
+                     (str (subs summary 0 13) "...")
+                     summary))))
+        (.style "font-weight" (fn [d]
+                               (let [task-id (-> d .-data .-data)]
+                                 (if (= (:hover-task-id ctx) task-id)
+                                   "bold"
+                                   "normal")))))
 
     ;; Add context highlighting
     (-> node-selection
@@ -245,8 +256,8 @@
                          (.select container)
                          (.select "svg")
                          (.select "#link-layer"))]
-      (draw-links link-group root ctx)
-      (draw-nodes node-group root ctx))))
+      (update-links link-group root ctx)
+      (update-nodes node-group root ctx))))
 
 (defn initialize-task-graph
   [ctx]
@@ -262,8 +273,8 @@
                          (.select container)
                          (.select "svg")
                          (.select "#link-layer"))]
-      (draw-links link-group root ctx)
-      (draw-nodes node-group root ctx))))
+      (update-links link-group root ctx)
+      (update-nodes node-group root ctx))))
 
 (defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom this-task-item-id]
   (r/create-class
