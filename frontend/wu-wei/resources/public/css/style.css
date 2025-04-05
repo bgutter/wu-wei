@@ -476,6 +476,7 @@ html, body {
 .ww-task-list-item-bottom-panel {
     display: flex;
     flex-direction: columns;
+    flex-wrap: wrap;
 }
 
 .ww-task-list-item-mini-button {
