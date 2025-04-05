@@ -17,7 +17,7 @@
                              fn-on-task-mouse-left
                              should-hide-completed-tasks])
 
-(defn clear-container-create-group
+(defn clear-container-create-groups
   "Delete all existing groups and append a new blank one in the SVG."
   [container]
   (let [svg (-> js/d3 (.select container) (.select "svg"))]
@@ -25,15 +25,12 @@
         (.selectAll "g")
         (.remove))
     (-> svg
-        (.append "g"))))
-
-(defn get-existing-container-group
-  "Get existing top-level group within the SVG"
-  [container]
-  (-> js/d3
-      (.select container)
-      (.select "svg")
-      (.select "g")))
+        (.append "g")
+        (.attr "id" "link-layer"))
+    (-> svg
+        (.append "g")
+        (.attr "id" "node-layer")))
+    nil)
 
 (defn hierarchical-task-data
   "Create a hierarchy of task data in the format expected by D3"
@@ -239,19 +236,34 @@
 (defn update-task-graph
   [ctx]
   (let [container (rd/dom-node (:component ctx))
-        group (get-existing-container-group container)
         root (make-cluster-hierarchy container (hierarchical-task-data ctx))]
-    (draw-links group root ctx)
-    (draw-nodes group root ctx)))
+    (let [node-group (-> js/d3
+                         (.select container)
+                         (.select "svg")
+                         (.select "#node-layer"))
+          link-group (-> js/d3
+                         (.select container)
+                         (.select "svg")
+                         (.select "#link-layer"))]
+      (draw-links link-group root ctx)
+      (draw-nodes node-group root ctx))))
 
 (defn initialize-task-graph
   [ctx]
   (let [container (rd/dom-node (:component ctx))
-        group (clear-container-create-group container)
         root (make-cluster-hierarchy container
                                      (hierarchical-task-data ctx))]
-    (draw-links group root ctx)
-    (draw-nodes group root ctx)))
+    (clear-container-create-groups container)
+    (let [node-group (-> js/d3
+                         (.select container)
+                         (.select "svg")
+                         (.select "#node-layer"))
+          link-group (-> js/d3
+                         (.select container)
+                         (.select "svg")
+                         (.select "#link-layer"))]
+      (draw-links link-group root ctx)
+      (draw-nodes node-group root ctx))))
 
 (defn task-graph [entity-cache-atom selected-task-id-atom hover-id-atom this-task-item-id]
   (r/create-class
