@@ -79,6 +79,15 @@
     ;; Return the data
     root))
 
+(defn svg-move-to [x y]
+  (str "M " x ", " y "\n"))
+
+(defn svg-cubic-bezier [x1 y1 x2 y2 x y]
+  (str "C " x1 ", " y1 ", " x2 ", " y2 ", " x ", " y "\n"))
+
+(defn interpolate [from to ratio]
+  (+ from (* ratio (- to from))))
+
 (defn update-links
   "Create .link elements in graph."
   [group root ctx]
@@ -104,11 +113,19 @@
                                                                        (entity-cache/lookup-id (:entity-cache ctx) task-id)
                                                                        (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx))))))
         (.attr "d" (fn [d]
-                     (str
-                      "M" (.-y d) "," (.-x d)
-                      "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
-                      " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
-                      " " (.-y (.-parent d)) "," (.-x (.-parent d))))))
+                     (let
+                         [x  (.-x d)
+                          y  (.-y d)
+                          px (.-x (.-parent d))
+                          py (.-y (.-parent d))]
+                       (str
+                        (svg-move-to y x)
+                        (svg-cubic-bezier (interpolate y py 0.5)
+                                          x
+                                          (interpolate y py 0.5)
+                                          px
+                                          py
+                                          px))))))
 
     ;; Update links
     (-> link-selection
@@ -121,11 +138,19 @@
         (.ease (.-easeQuadOut js/d3))
         (.duration 250)
         (.attr "d" (fn [d]
-                     (str
-                      "M" (.-y d) "," (.-x d)
-                      "C" (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x d)
-                      " " (/ (+ (.-y d) (.-y (.-parent d))) 2) "," (.-x (.-parent d))
-                      " " (.-y (.-parent d)) "," (.-x (.-parent d))))))
+                     (let
+                         [x  (.-x d)
+                          y  (.-y d)
+                          px (.-x (.-parent d))
+                          py (.-y (.-parent d))]
+                       (str
+                        (svg-move-to y x)
+                        (svg-cubic-bezier (interpolate y py 0.5)
+                                          x
+                                          (interpolate y py 0.5)
+                                          px
+                                          py
+                                          px))))))
 
     ;; clear old ones
     (-> link-selection
