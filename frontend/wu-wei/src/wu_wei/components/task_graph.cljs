@@ -30,6 +30,18 @@
         (.attr "height" "100%")
         (.attr "fill" "rgb(255,255,255)"))
     (-> svg
+        (.append "rect")
+        (.attr "width" "25%")
+        (.attr "height" "100%")
+        (.attr "x" "75%")
+        (.attr "fill" "rgb(240,240,240)"))
+    (-> svg
+        (.append "text")
+        (.attr "x" "75%")
+        (.attr "y" "20px")
+        (.attr "width" "25%")
+        (.text "Actionable Tasks"))
+    (-> svg
         (.append "g")
         (.attr "id" "link-layer"))
     (-> svg
@@ -63,7 +75,7 @@
        height (.-clientHeight container)
        tree (-> js/d3
                 (.cluster)
-                (.size (clj->js [height (- width 200)])))
+                (.size (clj->js [height (* width 0.7)])))
        root (-> js/d3
                 (.hierarchy hierarchy-data)
                 (.sort (fn [d]
@@ -75,7 +87,7 @@
     ;; Tweak sizing
     (-> root
         (.each (fn [d]
-                 (set! (.-y d) (+ 100 (.-y d))))))
+                 (set! (.-y d) (+ (* 0.1 width) (.-y d))))))
 
     ;; Return the data
     root))

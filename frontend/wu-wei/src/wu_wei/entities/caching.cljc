@@ -126,6 +126,16 @@
                         (reverse progression))))]
       (inner-fn cache task [] up-to-id))))
 
+(defn ancestor-task?
+  "Is A an ancestor of B?"
+  [cache task-a task-b]
+  (let
+      [relevant-ancestors (task-ancestry-ids cache task-b :up-to-id (:id task-a))]
+    (println task-a)
+    (println task-b)
+    (println relevant-ancestors)
+    (seq relevant-ancestors)))
+
 (defn task-effort-value-valid-p
   [value]
   (and (not (nil? value)) (> (count value) 0)))
