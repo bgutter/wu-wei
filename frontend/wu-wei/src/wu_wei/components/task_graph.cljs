@@ -25,6 +25,11 @@
         (.selectAll "g")
         (.remove))
     (-> svg
+        (.append "rect")
+        (.attr "width" "100%")
+        (.attr "height" "100%")
+        (.attr "fill" "rgb(255,255,255)"))
+    (-> svg
         (.append "g")
         (.attr "id" "link-layer"))
     (-> svg
@@ -58,7 +63,7 @@
        height (.-clientHeight container)
        tree (-> js/d3
                 (.cluster)
-                (.size (clj->js [height width])))
+                (.size (clj->js [height (- width 200)])))
        root (-> js/d3
                 (.hierarchy hierarchy-data)
                 (.sort (fn [d]
@@ -70,19 +75,15 @@
     ;; Tweak sizing
     (-> root
         (.each (fn [d]
-                 (set! (.-y d) (max 100 (min (- width 150) (.-y d))))
-                 (let [children (.-children d)]
-                   (if (or (not children) (<= (count children) 0))
-                     (do
-                       (set! (.-y d) (- width 150))))))))
+                 (set! (.-y d) (+ 100 (.-y d))))))
 
     ;; Return the data
     root))
 
-(defn svg-move-to [x y]
+(defn svg-path-cmd-move-to [x y]
   (str "M " x ", " y "\n"))
 
-(defn svg-cubic-bezier [x1 y1 x2 y2 x y]
+(defn svg-path-cmd-cubic-bezier [x1 y1 x2 y2 x y]
   (str "C " x1 ", " y1 ", " x2 ", " y2 ", " x ", " y "\n"))
 
 (defn interpolate [from to ratio]
@@ -119,8 +120,8 @@
                           px (.-x (.-parent d))
                           py (.-y (.-parent d))]
                        (str
-                        (svg-move-to y x)
-                        (svg-cubic-bezier (interpolate y py 0.5)
+                        (svg-path-cmd-move-to y x)
+                        (svg-path-cmd-cubic-bezier (interpolate y py 0.5)
                                           x
                                           (interpolate y py 0.5)
                                           px
@@ -144,8 +145,8 @@
                           px (.-x (.-parent d))
                           py (.-y (.-parent d))]
                        (str
-                        (svg-move-to y x)
-                        (svg-cubic-bezier (interpolate y py 0.5)
+                        (svg-path-cmd-move-to y x)
+                        (svg-path-cmd-cubic-bezier (interpolate y py 0.5)
                                           x
                                           (interpolate y py 0.5)
                                           px
