@@ -260,34 +260,34 @@
                              (str "translate(" (.-y d)"," (.-x d) ")"))))
 
     ;; Update ellipses
-    (doseq [sel [node-selection new-nodes-groups]]
-      (-> sel
-          (.select ".node-label-text")
-          (.text (fn [d]
-                   (let [task-id (-> d .-data .-data)
-                         summary (:summary (entity-cache/lookup-id (:entity-cache ctx) task-id))]
-                     (if (and (> (count summary) 15)
-                              (not (= (:hover-task-id ctx) task-id)))
-                       (str (subs summary 0 13) "...")
-                       summary))))
-          (.style "font-weight" (fn [d]
-                                  (let [task-id (-> d .-data .-data)]
-                                    (if (= (:hover-task-id ctx) task-id)
-                                      "bold"
-                                      "normal"))))))
+    (-> new-nodes-groups
+        (.merge node-selection)
+        (.select ".node-label-text")
+        (.text (fn [d]
+                 (let [task-id (-> d .-data .-data)
+                       summary (:summary (entity-cache/lookup-id (:entity-cache ctx) task-id))]
+                   (if (and (> (count summary) 15)
+                            (not (= (:hover-task-id ctx) task-id)))
+                     (str (subs summary 0 13) "...")
+                     summary))))
+        (.style "font-weight" (fn [d]
+                                (let [task-id (-> d .-data .-data)]
+                                  (if (= (:hover-task-id ctx) task-id)
+                                    "bold"
+                                    "normal")))))
 
     ;; Add context highlighting
-    (doseq [sel [node-selection new-nodes-groups]]
-      (-> sel
-          (.classed "node-hovered" (fn [d]
-                                     (let [task-id (-> d .-data .-data)]
-                                       (= task-id (:hover-task-id ctx)))))
-          (.classed "node-hovered-downstream"
-                    (fn [d]
-                      (let [task-id (-> d .-data .-data)]
-                        (entity-cache/descendent-task? (:entity-cache ctx)
-                                                       (entity-cache/lookup-id (:entity-cache ctx) task-id)
-                                                       (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx))))))))
+    (-> new-nodes-groups
+        (.merge node-selection)
+        (.classed "node-hovered" (fn [d]
+                                   (let [task-id (-> d .-data .-data)]
+                                     (= task-id (:hover-task-id ctx)))))
+        (.classed "node-hovered-downstream"
+                  (fn [d]
+                    (let [task-id (-> d .-data .-data)]
+                      (entity-cache/descendent-task? (:entity-cache ctx)
+                                                     (entity-cache/lookup-id (:entity-cache ctx) task-id)
+                                                     (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx)))))))
 
     (-> node-selection
         (.exit)
