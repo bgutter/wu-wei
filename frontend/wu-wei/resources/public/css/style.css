@@ -717,3 +717,9 @@ html, body {
     stroke: lightblue;
     stroke-width: 2px;
 }
+
+.link-upstream {
+    fill: none;
+    stroke: black;
+    stroke-width: 2px;
+}

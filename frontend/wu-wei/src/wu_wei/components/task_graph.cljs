@@ -113,6 +113,12 @@
                                         (entity-cache/descendent-task? (:entity-cache ctx)
                                                                        (entity-cache/lookup-id (:entity-cache ctx) task-id)
                                                                        (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx))))))
+        (.classed "link-upstream" (fn [d]
+                                    (let [task-id (-> d .-data .-data)]
+                                      (or (= task-id (:hover-task-id ctx))
+                                          (entity-cache/descendent-task? (:entity-cache ctx)
+                                                                         (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx))
+                                                                         (entity-cache/lookup-id (:entity-cache ctx) task-id))))))
         (.attr "d" (fn [d]
                      (let
                          [x  (.-x d)
@@ -135,6 +141,12 @@
                                         (entity-cache/descendent-task? (:entity-cache ctx)
                                                                        (entity-cache/lookup-id (:entity-cache ctx) task-id)
                                                                        (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx))))))
+        (.classed "link-upstream" (fn [d]
+                                    (let [task-id (-> d .-data .-data)]
+                                      (or (= task-id (:hover-task-id ctx))
+                                          (entity-cache/descendent-task? (:entity-cache ctx)
+                                                                         (entity-cache/lookup-id (:entity-cache ctx) (:hover-task-id ctx))
+                                                                         (entity-cache/lookup-id (:entity-cache ctx) task-id))))))
         (.transition)
         (.ease (.-easeQuadOut js/d3))
         (.duration 250)
