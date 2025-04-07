@@ -227,6 +227,40 @@
         (.duration 250)
         (.attr "opacity" 1))
 
+    ;; Add a drag handler
+    (-> groups
+        (.call (-> js/d3
+                   (.drag)
+                   (.on "start"
+                        (fn []
+                          (-> js/d3
+                              (.select "#drag-drop-div")
+                              (.classed "drag-drop-div--hidden" false)
+                              (.select ".drag-drop-div-message")
+                              (.text "Subtree of N nodes"))))
+                   (.on "drag"
+                        (fn [event]
+                          (let
+                              [ex (.-x (.-sourceEvent event))
+                               ey (.-y (.-sourceEvent event))
+                               prect (-> js/d3
+                                          (.select ".ww-task-graph")
+                                          (.node)
+                                          (.getBoundingClientRect))
+                               px (.-left prect)
+                               py (.-top prect)
+                               x (- ex px)
+                               y (- ey py)]
+                            (-> js/d3
+                                (.select "#drag-drop-div")
+                                (.style "left" (str x "px"))
+                                (.style "top" (str y "px"))))))
+                   (.on "end"
+                        (fn []
+                          (-> js/d3
+                              (.select "#drag-drop-div")
+                              (.classed "drag-drop-div--hidden" true)))))))
+
     ;; Return the groups
     groups))
 
@@ -358,7 +392,11 @@
               (if @should-hide-completed-nodes-atom
                 "Show All"
                 "Hide Completed")]]
-            [:div.ww-flexbox-spacer]]])
+            [:div.ww-flexbox-spacer]]
+           [:div.drag-drop-div.drag-drop-div--hidden
+            {:id "drag-drop-div"}
+            [:div.drag-drop-div-message]
+            ]])
 
         :component-did-mount
         (fn [this]
@@ -393,7 +431,6 @@
             (add-watch selected-task-id-atom
                        watcher-kw
                        (fn [a1 a2 a3 a4]
-                         (println (str "SELECTION CHANGED " a3 " -> " a4))
                          (handler-func a1 a2 a3 a4)))
             (add-watch hover-id-atom
                        watcher-kw
