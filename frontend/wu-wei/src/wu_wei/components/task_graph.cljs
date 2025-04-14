@@ -12,9 +12,11 @@
                              entity-cache
                              selected-task-id
                              hover-task-id
+                             drag-task-id
                              fn-on-task-clicked
                              fn-on-task-mouse-entered
                              fn-on-task-mouse-left
+                             fn-on-task-dragged
                              should-hide-completed-tasks])
 
 (defn clear-container-create-groups
@@ -105,10 +107,13 @@
   "Create .link elements in graph."
   [group root ctx]
   (let
-      [link-selection
+      [link-data
+       (-> root (.descendants) (.slice 1))
+
+       link-selection
        (-> group
            (.selectAll ".link")
-           (.data (-> root (.descendants) (.slice 1))
+           (.data link-data
                   (fn [d]
                     (.-data (.-data d)))))
 
@@ -133,18 +138,29 @@
                                                                          (entity-cache/lookup-id (:entity-cache ctx) task-id))))))
         (.attr "d" (fn [d]
                      (let
-                         [x  (.-x d)
-                          y  (.-y d)
-                          px (.-x (.-parent d))
-                          py (.-y (.-parent d))]
+                         [task-id          (-> d .-data .-data)
+                          hover-task-id    (:hover-task-id ctx)
+                          this-x           (.-x d)
+                          this-y           (.-y d)
+                          parent-node-info (if (and hover-task-id
+                                                    (:drag-task-id ctx)
+                                                    (not (= hover-task-id (:drag-task-id ctx)))
+                                                    (= task-id (:drag-task-id ctx))) ;; this is the dragged task -- its temporary parent is the hover task id
+                                              (->> link-data
+                                                   (filter #(= (-> % .-data .-data) hover-task-id))
+                                                   first)
+                                             (.-parent d))
+                          parent-x         (.-x parent-node-info)
+                          parent-y         (.-y parent-node-info)]
                        (str
-                        (svg-path-cmd-move-to y x)
-                        (svg-path-cmd-cubic-bezier (interpolate y py 0.5)
-                                          x
-                                          (interpolate y py 0.5)
-                                          px
-                                          py
-                                          px))))))
+                        (svg-path-cmd-move-to this-y
+                                              this-x)
+                        (svg-path-cmd-cubic-bezier (interpolate this-y parent-y 0.5)
+                                                   this-x
+                                                   (interpolate this-y parent-y 0.5)
+                                                   parent-x
+                                                   parent-y
+                                                   parent-x))))))
 
     ;; Update links
     (-> link-selection
@@ -164,18 +180,29 @@
         (.duration 250)
         (.attr "d" (fn [d]
                      (let
-                         [x  (.-x d)
-                          y  (.-y d)
-                          px (.-x (.-parent d))
-                          py (.-y (.-parent d))]
+                         [task-id          (-> d .-data .-data)
+                          hover-task-id    (:hover-task-id ctx)
+                          this-x           (.-x d)
+                          this-y           (.-y d)
+                          parent-node-info (if (and hover-task-id
+                                                    (:drag-task-id ctx)
+                                                    (not (= hover-task-id (:drag-task-id ctx)))
+                                                    (= task-id (:drag-task-id ctx))) ;; this is the dragged task -- its temporary parent is the hover task id
+                                              (->> link-data
+                                                   (filter #(= (-> % .-data .-data) hover-task-id))
+                                                   first)
+                                             (.-parent d))
+                          parent-x         (.-x parent-node-info)
+                          parent-y         (.-y parent-node-info)]
                        (str
-                        (svg-path-cmd-move-to y x)
-                        (svg-path-cmd-cubic-bezier (interpolate y py 0.5)
-                                          x
-                                          (interpolate y py 0.5)
-                                          px
-                                          py
-                                          px))))))
+                        (svg-path-cmd-move-to this-y
+                                              this-x)
+                        (svg-path-cmd-cubic-bezier (interpolate this-y parent-y 0.5)
+                                                   this-x
+                                                   (interpolate this-y parent-y 0.5)
+                                                   parent-x
+                                                   parent-y
+                                                   parent-x))))))
 
     ;; clear old ones
     (-> link-selection
@@ -232,7 +259,8 @@
         (.call (-> js/d3
                    (.drag)
                    (.on "start"
-                        (fn []
+                        (fn [event data]
+                          ((:fn-on-task-dragged ctx) event data)
                           (-> js/d3
                               (.select "#drag-drop-div")
                               (.classed "drag-drop-div--hidden" false)
@@ -257,6 +285,7 @@
                                 (.style "top" (str y "px"))))))
                    (.on "end"
                         (fn []
+                          ((:fn-on-task-dragged ctx) nil nil)
                           (-> js/d3
                               (.select "#drag-drop-div")
                               (.classed "drag-drop-div--hidden" true)))))))
@@ -363,6 +392,7 @@
   (r/create-class
    (let
        [watcher-kw (keyword (str "task-map-redraw-" this-task-item-id))
+        drag-id-atom (r/atom nil)
         should-hide-completed-nodes-atom (r/atom false)]
      (letfn
          [(fn-on-task-clicked [event data]
@@ -373,7 +403,12 @@
               (if (not (= task-id @hover-id-atom))
                 (reset! hover-id-atom task-id))))
           (fn-on-task-mouse-left [event data]
-            (reset! hover-id-atom nil))]
+            (reset! hover-id-atom nil))
+          (fn-on-task-dragged [event data]
+            (if (and event data)
+              (let [task-id (-> data .-data .-data)]
+                (reset! drag-id-atom task-id))
+              (reset! drag-id-atom nil)))]
 
        {:reagent-render
         (fn []
@@ -410,17 +445,21 @@
                                                             cache
                                                             selected-id
                                                             @hover-id-atom
+                                                            @drag-id-atom
                                                             fn-on-task-clicked
                                                             fn-on-task-mouse-entered
                                                             fn-on-task-mouse-left
+                                                            fn-on-task-dragged
                                                             @should-hide-completed-nodes-atom)))))]
             (initialize-task-graph (->GraphDrawContext this
                                                        @entity-cache-atom
                                                        @selected-task-id-atom
                                                        @hover-id-atom
+                                                       @drag-id-atom
                                                        fn-on-task-clicked
                                                        fn-on-task-mouse-entered
                                                        fn-on-task-mouse-left
+                                                       fn-on-task-dragged
                                                        @should-hide-completed-nodes-atom))
             (add-watch should-hide-completed-nodes-atom
                        watcher-kw
@@ -434,6 +473,9 @@
                          (handler-func a1 a2 a3 a4)))
             (add-watch hover-id-atom
                        watcher-kw
+                       handler-func)
+            (add-watch drag-id-atom
+                       watcher-kw
                        handler-func)))
 
         :component-will-unmount
@@ -445,5 +487,8 @@
           (remove-watch hover-id-atom
                         watcher-kw)
           (remove-watch should-hide-completed-nodes-atom
-                        watcher-kw))}))))
+                        watcher-kw)
+          (remove-watch drag-id-atom
+                        watcher-kw
+                        handler-func))}))))
 
